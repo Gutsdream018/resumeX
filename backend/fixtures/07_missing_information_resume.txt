@@ -1,0 +1,19 @@
+JASON B.
+(No phone, no email, no address provided)
+
+SUMMARY
+Experienced backend software developer working on cloud technologies and distributed databases.
+
+SKILLS
+Go, Python, Docker, Kubernetes, AWS, PostgreSQL, Redis
+
+WORK EXPERIENCE
+Senior Backend Engineer | CloudScale Inc.
+- Developed scalable microservices in Go handling thousands of concurrent requests.
+- Optimized database indexing to speed up queries.
+- Integrated automated testing suites.
+
+Backend Engineer | DataFlow Corp.
+- Built data ingestion pipelines and ETL workflows.
+- Maintained Docker containers and Kubernetes deployments.
+- Collaborated with product teams on technical specifications.

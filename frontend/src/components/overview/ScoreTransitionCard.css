@@ -1,0 +1,129 @@
+/* 3D Flip Score Card Styles */
+.score-transition-container {
+  position: relative;
+  width: 100%;
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
+}
+
+.score-transition-card-inner {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+  cursor: pointer;
+  border-radius: 18px;
+}
+
+/* Hover state before click */
+.score-transition-card-inner:not(.is-flipping):hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 24px rgba(229, 9, 32, 0.22);
+}
+
+.score-transition-card-inner:not(.is-flipping):hover .score-card-front {
+  border-color: rgba(229, 9, 32, 0.4);
+}
+
+/* Active 3D Flip state */
+.score-transition-card-inner.is-flipping {
+  transform: rotateY(180deg) scale(1.028);
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.85), 0 0 45px rgba(229, 9, 32, 0.4);
+  cursor: default;
+}
+
+/* Card Faces */
+.score-card-face {
+  position: relative;
+  width: 100%;
+  border-radius: 18px;
+  background: rgba(12, 12, 14, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.score-card-front {
+  z-index: 2;
+  transform: rotateY(0deg);
+}
+
+.score-card-back {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  transform: rotateY(180deg);
+  background: rgba(15, 15, 18, 0.94);
+  border-color: rgba(229, 9, 32, 0.35);
+  box-shadow: inset 0 0 35px rgba(229, 9, 32, 0.08);
+}
+
+/* 90-degree dynamic crimson edge light highlight */
+.score-flip-edge-flare {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent 0%, #E50920 30%, #FF4D5E 50%, #E50920 70%, transparent 100%);
+  box-shadow: 0 0 32px 10px rgba(229, 9, 32, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 10;
+}
+
+.is-mid-flip .score-flip-edge-flare {
+  opacity: 1;
+}
+
+/* Background Dimming Scrim during transition */
+.score-flip-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 4, 6, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.score-flip-backdrop.is-active {
+  opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .score-transition-container {
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+  }
+  .score-transition-card-inner.is-flipping {
+    transform: rotateY(180deg) scale(1.015);
+  }
+}
+
+/* Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .score-transition-card-inner {
+    transition: transform 0.25s ease, opacity 0.25s ease !important;
+  }
+  .score-transition-card-inner.is-flipping {
+    transform: scale(1.02) !important;
+    opacity: 0.9 !important;
+  }
+  .score-card-back {
+    display: none !important;
+  }
+  .score-flip-edge-flare {
+    display: none !important;
+  }
+}

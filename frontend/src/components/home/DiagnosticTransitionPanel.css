@@ -1,0 +1,199 @@
+/* 3D Flip Card Carousel Styles - Left to Right Physical Flip */
+
+.diagnostic-perspective-container {
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
+  perspective-origin: center center;
+  -webkit-perspective-origin: center center;
+  position: relative;
+  width: 100%;
+}
+
+/* Card Outer Shell with Rotating Conic-Gradient Border */
+.diagnostic-card-shell {
+  position: relative;
+  width: 100%;
+  height: 546px;
+  border-radius: 16px;
+  background: #111111;
+  border: 1px solid #262626;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.85), 0 0 35px rgba(229, 48, 58, 0.15);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+/* Slow Rotating Conic-Gradient Border (12% opacity) */
+@keyframes rotate-conic-glow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.conic-border-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: 17px;
+  background: conic-gradient(
+    from 0deg,
+    #E5303A 0deg,
+    transparent 70deg,
+    transparent 290deg,
+    #E5303A 360deg
+  );
+  opacity: 0.12;
+  animation: rotate-conic-glow 14s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 3D Flip Stage - Keeps card bounded while flipping in perspective */
+.diagnostic-flip-stage {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
+  perspective-origin: center center;
+  -webkit-perspective-origin: center center;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  overflow: hidden;
+}
+
+/* 3D Flip Card Container */
+.diagnostic-flip-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #111111;
+  padding: 16px 20px 10px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  z-index: 1;
+}
+
+/* Statically Grounded Bottom Navigation Bar */
+.diagnostic-card-footer {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 44px;
+  padding: 0 20px 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #111111;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+}
+
+/* Moving Specular Highlight Sheen (Subtle Neutral Glass Reflection) */
+.flip-specular-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.04) 55%,
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* Button Ripple Effect */
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+/* Control Buttons & Accessibility */
+.nav-arrow-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid #333333;
+  background: rgba(255, 255, 255, 0.04);
+  color: #A3A3A3;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.nav-arrow-btn:hover {
+  border-color: #E5303A;
+  color: #FFFFFF;
+  background: rgba(229, 48, 58, 0.18);
+}
+
+.nav-arrow-btn:focus-visible,
+.apply-fix-btn:focus-visible,
+.auto-play-toggle-btn:focus-visible,
+.dot-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #E5303A, 0 0 0 4px rgba(229, 48, 58, 0.35);
+}
+
+/* Tabular Numbers for Smooth Count-Up */
+.tabular-numbers {
+  font-variant-numeric: tabular-nums;
+  -webkit-font-variant-numeric: tabular-nums;
+}
+
+/* Breathing animation for status dot */
+@keyframes status-dot-breathe {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+.status-dot-breathing {
+  animation: status-dot-breathe 2.4s ease-in-out infinite;
+}
+
+/* Responsive Styles */
+@media (max-width: 960px) {
+  .diagnostic-perspective-container {
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+  }
+}
+
+@media (max-width: 640px) {
+  .diagnostic-perspective-container {
+    perspective: 800px;
+    -webkit-perspective: 800px;
+  }
+
+  .diagnostic-flip-card {
+    padding: 14px 16px;
+  }
+}

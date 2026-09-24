@@ -1,0 +1,24 @@
+MICHAEL CHANG
+Austin, TX | michael.chang@email.com | (512) 555-7821
+
+SUMMARY
+Web developer with 4 years of experience building applications with modern web stacks. Looking to bring my coding skills to a collaborative engineering team.
+
+SKILLS
+JavaScript, React, HTML5, CSS3, Node.js, Express, Git, MongoDB, PostgreSQL
+
+EXPERIENCE
+Frontend Developer | Synergy Web Studio | 2021 - Present
+- Responsible for creating web pages according to design mockups in Figma.
+- Worked on optimizing website loading speed and fixing UI responsiveness bugs.
+- Built reusable React components for the primary customer dashboard.
+- Assisted backend team with REST API endpoint integration.
+- Participated in bi-weekly sprint planning and code reviews.
+
+Junior Developer | ByteCraft Agency | 2019 - 2021
+- Developed interactive web pages using HTML, CSS, and vanilla JavaScript.
+- Updated content across client e-commerce websites.
+- Helped troubleshoot cross-browser compatibility issues.
+
+EDUCATION
+Bachelor of Science in Information Technology | University of Texas at Austin | 2019

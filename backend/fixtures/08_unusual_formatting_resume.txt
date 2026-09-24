@@ -1,0 +1,24 @@
+<<< CHRIS O'CONNOR >>>
+[STATUS: READY FOR HIRE]
+Find Me: chris.oconnor@codenetwork.org
+
+*** WHERE I'VE WORKED ***
+> Company: TechNova Labs
+> Position: Code Architect
+> Years: 2021-Now
+-- Built full-stack apps with Next.js and Tailwind
+-- Wrote backend services and monitored servers
+-- Fixed security vulnerabilities
+
+> Company: ByteStream
+> Position: Hacker & Builder
+> Years: 2019-2021
+-- Created web scrapers and automation tools
+-- Deployed code on Linux virtual machines
+
+*** STUFF I KNOW WELL ***
+JavaScript // TypeScript // React // Docker // Linux // Git // Node
+
+*** SCHOOLING & CERTIFICATES ***
+B.S. in Computer Science from State University, 2019
+AWS Certified Practitioner

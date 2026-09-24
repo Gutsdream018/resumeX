@@ -1,0 +1,25 @@
+DANIEL ROBERTS
+Chicago, IL | (312) 555-8910 | daniel.roberts@email.com | linkedin.com/in/daniel-roberts
+
+PROFESSIONAL PROFILE
+Software Engineer with 4 years of experience working in tech teams. Seeking to contribute my programming abilities to engineering projects.
+
+TECHNICAL SKILLS
+Java, Spring Boot, SQL, PostgreSQL, Docker, Git, REST APIs
+
+PROFESSIONAL EXPERIENCE
+Software Engineer | Midwest Financial Tech | 2021 – Present
+- Responsible for writing backend code in Java and Spring Boot.
+- Worked on developing microservices and database queries.
+- Helped with testing APIs and resolving software bugs.
+- Tasked with attending daily standups and sprint planning meetings.
+- Duties included writing documentation for internal systems.
+
+Associate Developer | Prairie Systems | 2019 – 2021
+- Assisted in maintaining existing company software applications.
+- Was involved in customer support ticket resolution for technical issues.
+- Handled routine data entry and database backups.
+- Participated in team code reviews and tech discussions.
+
+EDUCATION
+Bachelor of Science in Computer Science | Illinois Institute of Technology | 2019

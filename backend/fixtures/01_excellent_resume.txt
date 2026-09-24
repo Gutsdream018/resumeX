@@ -1,0 +1,31 @@
+SARAH J. CONNER
+Seattle, WA | (206) 555-0192 | sarah.conner@email.com | linkedin.com/in/sarah-conner-cloud | github.com/sarahconner
+
+EXECUTIVE SUMMARY
+Distinguished Cloud Infrastructure Architect with 8+ years of experience engineering high-availability multi-region systems. Proven expertise reducing cloud infrastructure expenditure by $450K annually while maintaining 99.999% SLA across 25M+ active users.
+
+CORE COMPETENCIES
+- Cloud Architecture: AWS (EKS, Lambda, CloudFront, RDS, DynamoDB), Google Cloud Platform, Azure
+- DevOps & CI/CD: Kubernetes, Terraform, Docker, ArgoCD, GitHub Actions, Helm
+- Programming & Scripting: Go, Python, Bash, TypeScript, SQL
+- Observability: Datadog, Prometheus, Grafana, OpenTelemetry, ELK Stack
+
+PROFESSIONAL EXPERIENCE
+Lead Cloud Architect | Apex Cloud Systems | Seattle, WA | 2021 – Present
+- Architected resilient multi-region Kubernetes infrastructure supporting 25M+ daily requests, improving disaster recovery RTO from 4 hours to 8 minutes.
+- Spearheaded enterprise cloud cost optimization program, downsizing idle workloads and securing reserved instances to cut annual AWS spend by $450,000 (32%).
+- Orchestrated zero-downtime database migration of 45TB PostgreSQL cluster to Amazon Aurora with zero data loss.
+- Mentored 12 DevOps engineers in infrastructure-as-code best practices and implemented automated compliance scanning using Terraform.
+
+Senior DevOps Engineer | CloudScale Networks | Bellevue, WA | 2018 – 2021
+- Engineered automated CI/CD deployment pipelines using ArgoCD and GitHub Actions, slashing average production release time from 45 minutes to 6 minutes.
+- Implemented comprehensive distributed tracing with OpenTelemetry and Datadog, reducing mean-time-to-detection (MTTD) for critical incidents by 64%.
+- Scaled distributed Redis caching cluster across 18 nodes, absorbing 70% of database read traffic during high-peak traffic events.
+
+EDUCATION
+Bachelor of Science in Computer Science & Engineering | University of Washington | 2014 – 2018
+- Magna Cum Laude, GPA 3.9/4.0
+
+CERTIFICATIONS
+- AWS Certified Solutions Architect – Professional (2023)
+- Certified Kubernetes Administrator (CKA, 2022)

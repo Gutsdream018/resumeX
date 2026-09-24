@@ -1,0 +1,22 @@
+KEVIN D. PARKER
+kevin.parker@email.com | 555-432-8765
+
+PROFESSIONAL SUMARY
+Experianced full-stack developer with 5 years in software developement and database managment. I am passionate about implimenting high quality solutions and colaberate with cross functional teams to achieve company goals.
+
+SKILLS
+Javascript, React, Python, Node.js, SQL, Git
+
+WORK EXPERIANCE
+Senior Programmer | TechCore Systems | 2021 - Present
+- Was responsible for managing teh main website and lead database migrations.
+- I developement new features for user authentications and security.
+- Successfully impliment automated testing pipelines to improve code qualitiy.
+- Colaberate with product managment on roadmap requirements.
+
+Junior Developer | WebSoft Inc | 2018 - 2021
+- Handled daily bug fixes and was updating front-end UI components.
+- Helpped write unit tests and documentation for internal API services.
+
+EDUCATION
+B.S. Computer Science | Metro State University | 2018

@@ -1,0 +1,12 @@
+Bob Smith
+Contact: bob12345@somemail.com
+
+I am looking for a job in technology. I have worked on various computers and done programming.
+
+Jobs I Did:
+- Worker at tech repair shop. Fixed computers and helped customers.
+- Created small websites for friends using HTML.
+- Helped with general office computer setup and printer troubleshooting.
+
+Things I Know:
+Computers, Windows, HTML, Word, Excel

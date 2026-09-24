@@ -1,0 +1,339 @@
+/* ResumeX Analyzer - Premium Black & Crimson Red Design System */
+
+:root {
+  /* Strict Palette from Prompt */
+  --bg-primary: #050505;
+  --bg-secondary: #0A0A0A;
+  --bg-card: #111111;
+  --bg-card-hover: #161616;
+  --bg-input: #0D0D0D;
+  --bg-glass: rgba(13, 13, 13, 0.85);
+
+  --border-subtle: #202020;
+  --border-hairline: #1A1A1A;
+  --border-hover: #333333;
+  --border-active: #E50920;
+  --border-red-subtle: rgba(229, 9, 32, 0.25);
+
+  /* Red Accents */
+  --primary-red: #E50920;
+  --bright-red: #FF2E44;
+  --red-glow: rgba(229, 9, 32, 0.25);
+  --red-glow-strong: rgba(229, 9, 32, 0.45);
+  --red-soft: rgba(229, 9, 32, 0.12);
+  --red-border: rgba(229, 9, 32, 0.35);
+
+  /* Neutrals & Text */
+  --white: #FFFFFF;
+  --text-primary: #F5F5F5;
+  --text-secondary: #9A9A9A;
+  --text-muted: #666666;
+  --text-subtle: #4D4D4D;
+
+  /* Status Colors */
+  --success: #10B981;
+  --success-soft: rgba(16, 185, 129, 0.12);
+  --success-border: rgba(16, 185, 129, 0.28);
+  --warning: #F59E0B;
+  --warning-soft: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.28);
+  --danger: #E50920;
+  --danger-soft: rgba(229, 9, 32, 0.12);
+  --danger-border: rgba(229, 9, 32, 0.3);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.6);
+  --shadow-red-glow: 0 0 25px -4px rgba(229, 9, 32, 0.35);
+  --shadow-red-button: 0 4px 16px 0 rgba(229, 9, 32, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(227, 27, 43, 0.04) 0%, transparent 60%),
+    radial-gradient(circle at 90% 20%, rgba(193, 18, 31, 0.03) 0%, transparent 40%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bright-red);
+}
+
+/* Base Layout Containers */
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Cards */
+.card-dark {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s ease-in-out;
+}
+.card-dark:hover {
+  border-color: var(--border-hover);
+}
+
+.card-red-accent {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  transition: all 0.25s ease;
+}
+.card-red-accent:hover {
+  border-color: var(--border-red-subtle);
+  box-shadow: var(--shadow-red-glow);
+}
+
+/* Button System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  user-select: none;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Primary Red CTA */
+.btn-red {
+  background: linear-gradient(135deg, var(--primary-red) 0%, var(--bright-red) 100%);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-red-button);
+}
+.btn-red:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 24px rgba(227, 27, 43, 0.55);
+  background: linear-gradient(135deg, #d31624 0%, #f02535 100%);
+}
+
+.btn-secondary-dark {
+  background: #141414;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+.btn-secondary-dark:hover:not(:disabled) {
+  background: #1c1c1c;
+  border-color: var(--border-hover);
+  color: var(--white);
+  transform: translateY(-1px);
+}
+
+.btn-ghost-red {
+  background: transparent;
+  color: var(--bright-red);
+  border: 1px solid transparent;
+}
+.btn-ghost-red:hover:not(:disabled) {
+  background: var(--red-soft);
+  border-color: var(--border-red-subtle);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Badges & Tags */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
+.badge-red {
+  background: var(--red-soft);
+  color: #ff6b75;
+  border: 1px solid var(--red-border);
+}
+
+.badge-green {
+  background: var(--success-soft);
+  color: #34d399;
+  border: 1px solid var(--success-border);
+}
+
+.badge-amber {
+  background: var(--warning-soft);
+  color: #fbbf24;
+  border: 1px solid var(--warning-border);
+}
+
+.badge-neutral {
+  background: #181818;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(227, 27, 43, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(227, 27, 43, 0.5);
+  }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s ease-out forwards;
+}
+
+.pulse-red-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Highlighted problem areas on resume text */
+.resume-problem-highlight {
+  background: rgba(227, 27, 43, 0.12);
+  border-bottom: 2px dashed var(--bright-red);
+  padding: 2px 4px;
+  border-radius: 3px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.resume-problem-highlight:hover {
+  background: rgba(227, 27, 43, 0.22);
+}
+
+/* Progress bar red accent */
+.progress-bar-track {
+  height: 6px;
+  background: #1c1c1c;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar-fill-red {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-red) 0%, var(--bright-red) 100%);
+  border-radius: var(--radius-full);
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Grid Utilities */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= PRINT MEDIA STYLES ================= */
+@media print {
+  body, html {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide all app chrome, headers, modals, and docks */
+  header, aside, .dashboard-sidebar-wrapper, .doc-section-controls,
+  .doc-bullet-hover-toolbar, .doc-item-delete-btn, .doc-add-inline-btn,
+  .doc-add-skill-pill, .doc-ai-sparkle-btn, .doc-optimized-badge,
+  .btn, .badge, [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Render A4 canvas cleanly */
+  #resume-document-a4-sheet {
+    box-shadow: none !important;
+    transform: none !important;
+    margin: 0 auto !important;
+    padding: 0.5in !important;
+    width: 100% !important;
+    max-width: 8.5in !important;
+    min-height: auto !important;
+  }
+
+  .doc-editable-input {
+    border: none !important;
+    background: transparent !important;
+  }
+}
+
