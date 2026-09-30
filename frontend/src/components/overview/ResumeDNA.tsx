@@ -358,27 +358,26 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
         }}
         className="resume-dna-grid"
       >
-        {/* Left: Futuristic Animated Circle Graph Topology Matrix */}
+        {/* Left: Simplified & Visually Aesthetic Resume DNA Topology */}
         <div
           style={{
             position: 'relative',
-            background: 'radial-gradient(circle at center, #0B0E14 0%, #06070A 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '14px',
-            minHeight: '390px',
+            background: 'radial-gradient(circle at center, rgba(229, 9, 32, 0.05) 0%, #0A0B0E 75%)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderRadius: '16px',
+            minHeight: '380px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            boxShadow: 'inset 0 0 50px rgba(0, 0, 0, 0.8)',
           }}
         >
-          {/* Ambient Technical Coordinate Watermarks */}
+          {/* Subtle Corner Status Beacon */}
           <div
             style={{
               position: 'absolute',
-              top: '12px',
-              left: '14px',
+              top: '14px',
+              left: '16px',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -388,56 +387,39 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
           >
             <span
               style={{
-                width: '7px',
-                height: '7px',
+                width: '6px',
+                height: '6px',
                 borderRadius: '50%',
                 backgroundColor: '#10B981',
-                boxShadow: '0 0 10px #10B981',
-                animation: 'pulseGlowSoft 2s infinite',
+                boxShadow: '0 0 8px #10B981',
               }}
             />
-            <span style={{ fontSize: '0.74rem', color: '#B0B0B0', fontWeight: 700, letterSpacing: '0.04em' }}>
-              {hoveredNodeId ? `TARGET LOCKED // ${hoveredNodeId.toUpperCase()}` : 'LIVE TOPOLOGY MATRIX // SYS.ACTIVE'}
+            <span style={{ fontSize: '0.72rem', color: '#9E9E9E', fontWeight: 600, letterSpacing: '0.04em' }}>
+              {hoveredNodeId ? `SELECTED // ${hoveredNodeId.toUpperCase()}` : 'SYSTEM TOPOLOGY // RESUME DNA'}
             </span>
           </div>
 
           <div
             style={{
               position: 'absolute',
-              top: '12px',
-              right: '14px',
+              bottom: '12px',
+              right: '16px',
               fontSize: '0.68rem',
               color: '#666666',
-              fontFamily: 'monospace',
-              letterSpacing: '0.06em',
-              pointerEvents: 'none',
-              zIndex: 10,
-            }}
-          >
-            RADIAL.GRID.v2.6 // 60 FPS
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '12px',
-              right: '14px',
-              fontSize: '0.7rem',
-              color: '#888888',
               pointerEvents: 'none',
               zIndex: 10,
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '4px',
             }}
           >
             <Sparkles size={11} color="#E50920" />
-            <span>Click any node to inspect telemetry</span>
+            <span>Select node to view intelligence</span>
           </div>
 
-          {/* Master Scalable SVG Topology Graph & Pattern */}
+          {/* Clean, Scalable, Hardware-Accelerated SVG */}
           <svg
-            viewBox="0 0 600 370"
+            viewBox="0 0 580 370"
             style={{
               width: '100%',
               height: '370px',
@@ -447,422 +429,246 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
             }}
           >
             <defs>
-              {/* Radial gradient for central core hub */}
-              <radialGradient id="coreHubGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FF384D" />
-                <stop offset="65%" stopColor="#C40517" />
-                <stop offset="100%" stopColor="#250005" />
-              </radialGradient>
-
-              {/* Central glowing aura */}
-              <filter id="coreGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="6" result="blur" />
+              {/* Soft glow filter for active elements */}
+              <filter id="activeSpokeGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
-
-              {/* Node glow filter */}
-              <filter id="nodeGlow" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="5" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-
-              {/* Radar sweep gradient */}
-              <linearGradient id="radarSweepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#E50920" stopOpacity="0.22" />
-                <stop offset="60%" stopColor="#E50920" stopOpacity="0.04" />
-                <stop offset="100%" stopColor="#E50920" stopOpacity="0" />
-              </linearGradient>
-
-              {/* Spoke line gradients for each node */}
-              {nodes.map((node) => (
-                <linearGradient
-                  key={`spokeGrad-${node.id}`}
-                  id={`spokeGrad-${node.id}`}
-                  x1="300"
-                  y1="185"
-                  x2={300 + Math.cos((node.angle * Math.PI) / 180) * node.distance}
-                  y2={185 + Math.sin((node.angle * Math.PI) / 180) * node.distance}
-                  gradientUnits="userSpaceOnUse"
-                >
-                  <stop offset="0%" stopColor="#E50920" stopOpacity="0.8" />
-                  <stop offset="60%" stopColor={node.color} stopOpacity="0.6" />
-                  <stop offset="100%" stopColor={node.color} stopOpacity="0.95" />
-                </linearGradient>
-              ))}
             </defs>
 
-            {/* 1. BACKGROUND PATTERN & CONCENTRIC ORBITS */}
-            <g opacity="0.85">
-              {/* Center Axis Crosshairs */}
-              <line x1="100" y1="185" x2="500" y2="185" stroke="#FFFFFF" strokeOpacity="0.04" strokeDasharray="3 6" />
-              <line x1="300" y1="40" x2="300" y2="330" stroke="#FFFFFF" strokeOpacity="0.04" strokeDasharray="3 6" />
+            {/* 1. ELEGANT BACKGROUND ORBITAL GUIDES */}
+            <g opacity="0.6">
+              {/* Inner Dotted Orbit Ring */}
+              <circle cx="290" cy="185" r="75" fill="none" stroke="#FFFFFF" strokeOpacity="0.05" strokeDasharray="3 4" />
 
-              {/* Diagonal Grid Rays */}
-              <line x1="170" y1="55" x2="430" y2="315" stroke="#FFFFFF" strokeOpacity="0.025" strokeDasharray="2 8" />
-              <line x1="170" y1="315" x2="430" y2="55" stroke="#FFFFFF" strokeOpacity="0.025" strokeDasharray="2 8" />
+              {/* Main Node Orbit Ring */}
+              <circle cx="290" cy="185" r="135" fill="none" stroke="#FFFFFF" strokeOpacity="0.06" strokeWidth="1" />
 
-              {/* Range Orbit 1 (Inner Dotted r=60) */}
-              <circle cx="300" cy="185" r="60" fill="none" stroke="#FFFFFF" strokeOpacity="0.08" strokeDasharray="2 4" />
-
-              {/* Range Orbit 2 (Mid Dashed Counter-Rotating r=105) */}
-              <circle
-                cx="300"
-                cy="185"
-                r="105"
-                fill="none"
-                stroke="#E50920"
-                strokeOpacity="0.16"
-                strokeWidth="1.2"
-                strokeDasharray="4 8"
-                className="animate-spin-reverse-slow"
-              />
-
-              {/* Range Orbit 3 (Nodes Orbit Circle r=145) */}
-              <circle cx="300" cy="185" r="145" fill="none" stroke="#FFFFFF" strokeOpacity="0.06" strokeWidth="1" />
-
-              {/* Range Orbit 4 (Outer Telemetry Circle r=175 with Compass Ticks) */}
-              <g className="animate-spin-slow">
-                <circle cx="300" cy="185" r="175" fill="none" stroke="#FFFFFF" strokeOpacity="0.1" strokeDasharray="6 14" strokeWidth="1" />
-                {/* 12 Compass Degree Ticks on Outer Orbit */}
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const angle = (i * 30 * Math.PI) / 180;
-                  const x1 = 300 + Math.cos(angle) * 171;
-                  const y1 = 185 + Math.sin(angle) * 171;
-                  const x2 = 300 + Math.cos(angle) * 179;
-                  const y2 = 185 + Math.sin(angle) * 179;
-                  return (
-                    <line
-                      key={`compass-tick-${i}`}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke={i % 3 === 0 ? '#E50920' : '#FFFFFF'}
-                      strokeOpacity={i % 3 === 0 ? 0.45 : 0.2}
-                      strokeWidth={i % 3 === 0 ? 1.5 : 1}
-                    />
-                  );
-                })}
-              </g>
-
-              {/* Rotating Radar Scanner Sweep */}
-              <g className="animate-radar-sweep">
-                <path
-                  d="M 300 185 L 300 10 A 175 175 0 0 1 425 65 Z"
-                  fill="url(#radarSweepGrad)"
-                />
-                <line x1="300" y1="185" x2="425" y2="65" stroke="#E50920" strokeOpacity="0.4" strokeWidth="1.2" />
-              </g>
-
-              {/* Ambient Floating Micro-particles / Stars */}
-              {[
-                { x: 190, y: 75, r: 1.2, o: 0.3 },
-                { x: 410, y: 80, r: 1.5, o: 0.4 },
-                { x: 450, y: 270, r: 1, o: 0.25 },
-                { x: 150, y: 250, r: 1.2, o: 0.35 },
-                { x: 230, y: 310, r: 1.5, o: 0.3 },
-                { x: 370, y: 320, r: 1.2, o: 0.4 },
-                { x: 120, y: 150, r: 1, o: 0.25 },
-                { x: 470, y: 160, r: 1.5, o: 0.35 },
-              ].map((star, idx) => (
-                <circle
-                  key={`star-${idx}`}
-                  cx={star.x}
-                  cy={star.y}
-                  r={star.r}
-                  fill="#FFFFFF"
-                  opacity={star.o}
-                />
-              ))}
+              {/* Subtle Coordinate Axis Crosshairs */}
+              <line x1="290" y1="35" x2="290" y2="335" stroke="#FFFFFF" strokeOpacity="0.03" strokeDasharray="2 6" />
+              <line x1="130" y1="185" x2="450" y2="185" stroke="#FFFFFF" strokeOpacity="0.03" strokeDasharray="2 6" />
             </g>
 
-            {/* 2. DYNAMIC SPOKES & MOVING DATA PACKETS */}
+            {/* 2. CONNECTING SPOKE LINES & SUBTLE DATA FLOW */}
             <g>
-              {nodes.map((node, index) => {
-                const rad = (node.angle * Math.PI) / 180;
-                const nx = 300 + Math.cos(rad) * node.distance;
-                const ny = 185 + Math.sin(rad) * node.distance;
+              {nodes.map((node) => {
+                // Fixed balanced orbital distribution around r=135
+                let nx = 290;
+                let ny = 185;
+                if (node.id === 'skills') { nx = 290; ny = 52; }
+                else if (node.id === 'experience') { nx = 390; ny = 88; }
+                else if (node.id === 'projects') { nx = 422; ny = 200; }
+                else if (node.id === 'education') { nx = 345; ny = 308; }
+                else if (node.id === 'certifications') { nx = 235; ny = 308; }
+                else if (node.id === 'achievements') { nx = 158; ny = 200; }
+                else if (node.id === 'keywords') { nx = 190; ny = 88; }
+
                 const isSel = selectedNodeId === node.id;
                 const isHov = hoveredNodeId === node.id;
                 const active = isSel || isHov;
 
                 return (
-                  <g key={`spoke-group-${node.id}`}>
-                    {/* Base Spoke Path */}
+                  <g key={`spoke-${node.id}`}>
+                    {/* Underlying Spoke Line */}
                     <line
-                      x1="300"
+                      x1="290"
                       y1="185"
                       x2={nx}
                       y2={ny}
-                      stroke={`url(#spokeGrad-${node.id})`}
-                      strokeWidth={active ? 2.5 : 1.2}
-                      strokeOpacity={active ? 0.95 : 0.35}
-                      style={{ transition: 'stroke-width 0.25s ease, stroke-opacity 0.25s ease' }}
+                      stroke={active ? '#E50920' : '#FFFFFF'}
+                      strokeWidth={active ? 2 : 1}
+                      strokeOpacity={active ? 0.85 : 0.08}
+                      filter={active ? 'url(#activeSpokeGlow)' : 'none'}
+                      style={{ transition: 'all 0.3s ease' }}
                     />
 
-                    {/* Animated Outward Dashed Energy Flow */}
-                    <line
-                      x1="300"
-                      y1="185"
-                      x2={nx}
-                      y2={ny}
-                      stroke={node.color}
-                      strokeWidth={active ? 3 : 1.6}
-                      strokeDasharray="5 10"
-                      strokeOpacity={active ? 0.9 : 0.5}
-                      className="animate-spoke-flow"
-                      style={{
-                        animationDuration: active ? '0.8s' : `${1.4 + index * 0.15}s`,
-                      }}
-                    />
-
-                    {/* Moving Data Energy Photon 1 */}
-                    <circle r={active ? 3.5 : 2.5} fill="#FFFFFF" filter="url(#nodeGlow)">
-                      <animateMotion
-                        path={`M 300 185 L ${nx} ${ny}`}
-                        dur={active ? '1.1s' : `${1.8 + (index % 3) * 0.4}s`}
-                        repeatCount="indefinite"
-                        begin={`${index * 0.25}s`}
-                      />
-                    </circle>
-
-                    {/* Moving Data Energy Photon 2 (Offset in orbit) */}
-                    <circle r={active ? 2.5 : 1.8} fill={node.color} opacity="0.85">
-                      <animateMotion
-                        path={`M 300 185 L ${nx} ${ny}`}
-                        dur={active ? '1.1s' : `${1.8 + (index % 3) * 0.4}s`}
-                        repeatCount="indefinite"
-                        begin={`${index * 0.25 + 0.7}s`}
-                      />
-                    </circle>
+                    {/* Smooth, subtle energy light bead on active spoke */}
+                    {active && (
+                      <circle r="3" fill="#FFFFFF" filter="url(#activeSpokeGlow)">
+                        <animateMotion
+                          path={`M 290 185 L ${nx} ${ny}`}
+                          dur="1.8s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    )}
                   </g>
                 );
               })}
             </g>
 
-            {/* 3. CENTRAL HUB (CORE RESUME DNA) */}
-            <g>
-              {/* Concentric Shockwave Pulse Rings */}
+            {/* 3. CENTRAL HUB (ATS CORE) */}
+            <g style={{ cursor: 'default' }}>
+              {/* Soft breathing ambient halo */}
               <circle
-                cx="300"
+                cx="290"
                 cy="185"
-                r="34"
-                fill="none"
-                stroke="#E50920"
-                className="animate-core-shockwave"
-              />
-              <circle
-                cx="300"
-                cy="185"
-                r="34"
-                fill="none"
-                stroke="#FF2E44"
-                className="animate-core-shockwave-delayed"
+                r="44"
+                fill="#E50920"
+                className="animate-dna-halo"
               />
 
-              {/* Rotating Telemetry Gear Ring */}
+              {/* Accent ring */}
               <circle
-                cx="300"
+                cx="290"
                 cy="185"
-                r="41"
+                r="36"
                 fill="none"
                 stroke="#E50920"
                 strokeWidth="1.5"
-                strokeDasharray="8 6 3 6"
-                strokeOpacity="0.75"
-                className="animate-spin-slow"
+                strokeOpacity="0.8"
+                filter="url(#activeSpokeGlow)"
               />
 
-              {/* Counter-rotating Inner Tick Ring */}
+              {/* Core Hub Body */}
               <circle
-                cx="300"
+                cx="290"
                 cy="185"
-                r="33"
-                fill="none"
-                stroke="#FFFFFF"
+                r="31"
+                fill="#121318"
+                stroke="rgba(255, 255, 255, 0.12)"
                 strokeWidth="1"
-                strokeDasharray="2 4"
-                strokeOpacity="0.3"
-                className="animate-spin-reverse-slow"
               />
 
-              {/* Solid High-Density Core Sphere */}
-              <circle
-                cx="300"
-                cy="185"
-                r="27"
-                fill="url(#coreHubGrad)"
-                stroke="#FF4D5E"
-                strokeWidth="2"
-                filter="url(#coreGlow)"
-              />
-
-              {/* Central Core Score & Monogram */}
+              {/* Overall Score */}
               <text
-                x="300"
-                y="183"
+                x="290"
+                y="184"
                 textAnchor="middle"
                 fill="#FFFFFF"
-                fontSize="13"
-                fontWeight="900"
+                fontSize="16"
+                fontWeight="800"
                 letterSpacing="-0.02em"
               >
                 {analysis.overall_score || 85}
               </text>
               <text
-                x="300"
-                y="194"
+                x="290"
+                y="196"
                 textAnchor="middle"
-                fill="rgba(255, 255, 255, 0.7)"
+                fill="#888888"
                 fontSize="6.5"
-                fontWeight="800"
-                letterSpacing="0.1em"
+                fontWeight="700"
+                letterSpacing="0.12em"
               >
                 ATS CORE
               </text>
             </g>
 
-            {/* 4. SATELLITE NODES & FLOATING HUD LABELS */}
+            {/* 4. SATELLITE NODES & CLEAN TYPOGRAPHY */}
             <g>
               {nodes.map((node) => {
-                const rad = (node.angle * Math.PI) / 180;
-                const nx = 300 + Math.cos(rad) * node.distance;
-                const ny = 185 + Math.sin(rad) * node.distance;
+                let nx = 290;
+                let ny = 185;
+                if (node.id === 'skills') { nx = 290; ny = 52; }
+                else if (node.id === 'experience') { nx = 390; ny = 88; }
+                else if (node.id === 'projects') { nx = 422; ny = 200; }
+                else if (node.id === 'education') { nx = 345; ny = 308; }
+                else if (node.id === 'certifications') { nx = 235; ny = 308; }
+                else if (node.id === 'achievements') { nx = 158; ny = 200; }
+                else if (node.id === 'keywords') { nx = 190; ny = 88; }
+
                 const isSel = selectedNodeId === node.id;
                 const isHov = hoveredNodeId === node.id;
                 const active = isSel || isHov;
                 const IconComponent = node.icon;
 
-                // Label positioning offset based on quadrant
-                const isRight = Math.cos(rad) >= 0;
-                const isTop = Math.sin(rad) < 0;
-                const pillX = isRight ? nx + 14 : nx - 85;
-                const pillY = isTop ? ny - 8 : ny + 4;
+                // Typography layout calculation based on position
+                const isTopCenter = node.id === 'skills';
+                const isRightSide = nx > 290 && !isTopCenter;
+                const textAnchor = isTopCenter ? 'middle' : isRightSide ? 'start' : 'end';
+                const labelX = isTopCenter ? nx : isRightSide ? nx + 25 : nx - 25;
+                const labelY1 = isTopCenter ? ny - 28 : ny - 2;
+                const labelY2 = isTopCenter ? ny - 16 : ny + 11;
 
                 return (
                   <g
-                    key={`satellite-node-${node.id}`}
+                    key={`node-item-${node.id}`}
                     onClick={() => setSelectedNodeId(node.id)}
                     onMouseEnter={() => setHoveredNodeId(node.id)}
                     onMouseLeave={() => setHoveredNodeId(null)}
                     style={{
                       cursor: 'pointer',
-                      transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                   >
-                    {/* Node Ambient Radial Aura */}
-                    <circle
-                      cx={nx}
-                      cy={ny}
-                      r={active ? node.size + 14 : node.size + 6}
-                      fill={node.color}
-                      opacity={active ? 0.35 : 0.15}
-                      filter="url(#nodeGlow)"
-                      style={{ transition: 'all 0.25s ease' }}
-                    />
-
-                    {/* Active Selected Rotating Target Reticle Ring */}
+                    {/* Active Soft Aura Ring */}
                     {active && (
-                      <g className="animate-spin-slow">
-                        <circle
-                          cx={nx}
-                          cy={ny}
-                          r={node.size + 8}
-                          fill="none"
-                          stroke={node.color}
-                          strokeWidth="1.5"
-                          strokeDasharray="4 6"
-                          strokeOpacity="0.9"
-                        />
-                      </g>
+                      <circle
+                        cx={nx}
+                        cy={ny}
+                        r="24"
+                        fill="#E50920"
+                        opacity="0.18"
+                        filter="url(#activeSpokeGlow)"
+                      />
                     )}
 
                     {/* Node Glass Body */}
                     <circle
                       cx={nx}
                       cy={ny}
-                      r={node.size}
-                      fill="#0C0E14"
-                      stroke={node.color}
-                      strokeWidth={active ? 2.5 : 1.5}
-                      filter="url(#nodeGlow)"
-                      style={{ transition: 'all 0.2s ease' }}
+                      r="18"
+                      fill={active ? '#181216' : '#12141A'}
+                      stroke={active ? '#E50920' : 'rgba(255, 255, 255, 0.12)'}
+                      strokeWidth={active ? 2 : 1}
+                      filter={active ? 'url(#activeSpokeGlow)' : 'none'}
+                      style={{ transition: 'all 0.25s ease' }}
                     />
 
-                    {/* Inner Colored Accent Disc */}
-                    <circle
-                      cx={nx}
-                      cy={ny}
-                      r={node.size * 0.72}
-                      fill={node.color}
-                      opacity={active ? 0.95 : 0.75}
-                      style={{ transition: 'all 0.2s ease' }}
-                    />
-
-                    {/* Embedded Central Icon inside Node Circle */}
+                    {/* Icon Centered in Node */}
                     <foreignObject
-                      x={nx - 9}
-                      y={ny - 9}
-                      width="18"
-                      height="18"
+                      x={nx - 8}
+                      y={ny - 8}
+                      width="16"
+                      height="16"
                       style={{ pointerEvents: 'none' }}
                     >
                       <div
                         style={{
-                          width: '18px',
-                          height: '18px',
+                          width: '16px',
+                          height: '16px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#FFFFFF',
+                          color: active ? '#FFFFFF' : '#8E919B',
+                          transition: 'color 0.2s ease',
                         }}
                       >
-                        <IconComponent size={12} strokeWidth={2.5} />
+                        <IconComponent size={13} strokeWidth={active ? 2.5 : 2} />
                       </div>
                     </foreignObject>
 
-                    {/* Floating HUD Pill with Section Name and Metric */}
-                    <g
-                      transform={`translate(${pillX}, ${pillY})`}
-                      style={{
-                        pointerEvents: 'none',
-                        transition: 'opacity 0.2s ease, transform 0.2s ease',
-                      }}
-                      opacity={active ? 1 : 0.85}
+                    {/* Clean Typographic Label */}
+                    <text
+                      x={labelX}
+                      y={labelY1}
+                      textAnchor={textAnchor}
+                      fill={active ? '#FFFFFF' : '#C2C5D0'}
+                      fontSize="10.5"
+                      fontWeight={active ? 800 : 600}
+                      letterSpacing="0.01em"
+                      style={{ transition: 'fill 0.2s ease' }}
                     >
-                      {/* Pill Background Glass */}
-                      <rect
-                        x="0"
-                        y="0"
-                        width="72"
-                        height="20"
-                        rx="5"
-                        fill="rgba(14, 16, 22, 0.85)"
-                        stroke={active ? node.color : 'rgba(255, 255, 255, 0.12)'}
-                        strokeWidth={active ? 1.5 : 1}
-                      />
+                      {node.label}
+                    </text>
 
-                      {/* Pill Indicator Dot */}
-                      <circle cx="8" cy="10" r="2.5" fill={node.color} />
-
-                      {/* Pill Section Title */}
-                      <text
-                        x="15"
-                        y="13"
-                        fill="#FFFFFF"
-                        fontSize="8"
-                        fontWeight="800"
-                        letterSpacing="0.04em"
-                      >
-                        {node.label.toUpperCase()}
-                      </text>
-                    </g>
+                    {/* Secondary Metric Count */}
+                    <text
+                      x={labelX}
+                      y={labelY2}
+                      textAnchor={textAnchor}
+                      fill={active ? '#E50920' : '#737785'}
+                      fontSize="8.5"
+                      fontWeight="600"
+                      letterSpacing="0.02em"
+                      style={{ transition: 'fill 0.2s ease' }}
+                    >
+                      {node.stats.primary.split(' ')[0]} {node.stats.primary.split(' ')[1] || ''}
+                    </text>
                   </g>
                 );
               })}

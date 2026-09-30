@@ -451,3 +451,34 @@ h1, h2, h3, h4, h5, h6 {
   animation: spokeDashFlow 1.2s linear infinite;
 }
 
+@keyframes dnaSoftPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes dnaHaloBreath {
+  0%, 100% {
+    r: 44px;
+    opacity: 0.16;
+  }
+  50% {
+    r: 52px;
+    opacity: 0.32;
+  }
+}
+
+.animate-dna-pulse {
+  animation: dnaSoftPulse 3.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.animate-dna-halo {
+  animation: dnaHaloBreath 3.6s ease-in-out infinite;
+}
+
