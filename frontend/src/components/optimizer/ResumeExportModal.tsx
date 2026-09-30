@@ -108,6 +108,7 @@ export const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
   };
 
   const plainText = generatePlainTextResume();
+  const hasUnresolvedPlaceholders = /\[X%\]|\[N users\]|\[metric:|\b\[Insert\b/i.test(plainText);
 
   return (
     <div
@@ -165,6 +166,30 @@ export const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
           </button>
         </div>
 
+        {/* Amber Placeholders Warning if [X%] present */}
+        {hasUnresolvedPlaceholders && (
+          <div
+            style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid #F59E0B',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              marginBottom: '14px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+            }}
+          >
+            <span style={{ fontSize: '1rem', lineHeight: '1' }}>⚠️</span>
+            <div style={{ fontSize: '0.76rem', color: '#F59E0B', lineHeight: '1.4' }}>
+              <strong>Export Blocked: Unresolved Placeholders Detected</strong>
+              <div>
+                Your resume contains metric placeholders such as <code style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>[X%]</code> or <code style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', padding: '1px 5px', borderRadius: '3px', fontWeight: 700 }}>[N users]</code>. Please fill in your authentic measurements or remove the placeholders in the document before exporting.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Document Preview Box */}
         <div
           style={{
@@ -174,13 +199,13 @@ export const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
             borderRadius: '10px',
             padding: '18px',
             overflowY: 'auto',
-            maxHeight: '380px',
+            maxHeight: '360px',
             fontFamily: 'monospace',
             fontSize: '0.78rem',
             color: '#E0E0E0',
             whiteSpace: 'pre-wrap',
             lineHeight: 1.5,
-            marginBottom: '20px',
+            marginBottom: '18px',
           }}
         >
           {plainText}
@@ -204,9 +229,17 @@ export const ResumeExportModal: React.FC<ResumeExportModalProps> = ({
             </button>
 
             <button
-              onClick={handlePrint}
+              onClick={hasUnresolvedPlaceholders ? undefined : handlePrint}
+              disabled={hasUnresolvedPlaceholders}
               className="btn btn-red"
-              style={{ fontSize: '0.82rem', padding: '8px 18px', fontWeight: 700 }}
+              title={hasUnresolvedPlaceholders ? 'Resolve [X%] placeholders to enable PDF export' : 'Print / Save as PDF'}
+              style={{
+                fontSize: '0.82rem',
+                padding: '8px 18px',
+                fontWeight: 700,
+                opacity: hasUnresolvedPlaceholders ? 0.45 : 1,
+                cursor: hasUnresolvedPlaceholders ? 'not-allowed' : 'pointer',
+              }}
             >
               <Printer size={14} />
               <span>Print / Save as PDF</span>

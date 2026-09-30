@@ -41,12 +41,34 @@ export const WorkflowBreadcrumb: React.FC<WorkflowBreadcrumbProps> = ({
       {STAGES.map((stage, idx) => {
         const isActive = stage.id === currentStage;
         const isPast = idx < currentIndex;
+        const isFuture = idx > currentIndex;
+
+        const unlockRequirements: Record<WorkflowStage, string> = {
+          analyze: 'Complete resume ingestion and parse',
+          diagnose: 'Unlocked after ATS and structural analysis',
+          match: 'Unlocked: Paste a job description to run 10-dimension match',
+          optimize: 'Locked: Run Match or Diagnostic audit to generate targeted fixes',
+          validate: 'Locked: Apply optimizations to validate score elevation',
+          export: 'Locked: Finalize ATS-tailored resume draft',
+        };
+
+        const tooltip = isActive
+          ? `Current stage: ${stage.label}`
+          : isPast
+          ? `Completed: Click to revisit ${stage.label}`
+          : unlockRequirements[stage.id] || 'Complete previous step to unlock';
 
         return (
           <React.Fragment key={stage.id}>
             <button
               type="button"
-              onClick={() => onNavigateStage && onNavigateStage(stage.id)}
+              disabled={isFuture}
+              title={tooltip}
+              onClick={() => {
+                if (!isFuture && onNavigateStage) {
+                  onNavigateStage(stage.id);
+                }
+              }}
               style={{
                 background: isActive
                   ? 'rgba(229, 9, 32, 0.18)'
@@ -57,31 +79,32 @@ export const WorkflowBreadcrumb: React.FC<WorkflowBreadcrumbProps> = ({
                   ? '1px solid rgba(229, 9, 32, 0.4)'
                   : isPast
                   ? '1px solid rgba(255, 255, 255, 0.08)'
-                  : '1px solid transparent',
+                  : '1px solid rgba(255, 255, 255, 0.02)',
                 borderRadius: '9999px',
                 padding: '3px 10px',
-                color: isActive ? '#FFFFFF' : isPast ? '#C4C4C4' : '#666666',
+                color: isActive ? '#FFFFFF' : isPast ? '#C4C4C4' : '#4E4E4E',
                 fontSize: '0.68rem',
                 fontWeight: isActive ? 800 : isPast ? 600 : 500,
                 letterSpacing: '0.06em',
-                cursor: onNavigateStage ? 'pointer' : 'default',
+                cursor: isFuture ? 'not-allowed' : onNavigateStage ? 'pointer' : 'default',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
+                opacity: isFuture ? 0.55 : 1,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                if (!isActive && onNavigateStage) {
+                if (!isActive && !isFuture && onNavigateStage) {
                   e.currentTarget.style.color = '#FFFFFF';
                   e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (!isActive && onNavigateStage) {
-                  e.currentTarget.style.color = isPast ? '#C4C4C4' : '#666666';
+                if (!isActive && !isFuture && onNavigateStage) {
+                  e.currentTarget.style.color = isPast ? '#C4C4C4' : '#4E4E4E';
                   e.currentTarget.style.borderColor = isPast
                     ? 'rgba(255, 255, 255, 0.08)'
-                    : 'transparent';
+                    : 'rgba(255, 255, 255, 0.02)';
                 }
               }}
             >

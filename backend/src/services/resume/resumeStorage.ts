@@ -4,7 +4,7 @@ export interface StoredResume {
   resumeId: string;
   filename: string;
   mimetype: string;
-  buffer: Buffer;
+  buffer?: Buffer | null;
   text?: string;
   uploadedAt: Date;
   analysis?: any;
@@ -12,14 +12,16 @@ export interface StoredResume {
 
 class ResumeStorage {
   private resumes: Map<string, StoredResume> = new Map();
-  private readonly TTL_MS = 2 * 60 * 60 * 1000; // 2 hours retention
+  private readonly TTL_MS = 60 * 60 * 1000; // 1 hour retention (memory-conscious for free-tier)
+  private readonly MAX_STORED = 50; // Cap at 50 in-flight resumes to preserve RAM
 
   constructor() {
-    // Periodic cleanup of expired resumes
-    setInterval(() => this.cleanup(), 15 * 60 * 1000);
+    // Periodic cleanup of expired resumes every 10 minutes
+    setInterval(() => this.cleanup(), 10 * 60 * 1000).unref();
   }
 
   public saveResume(filename: string, mimetype: string, buffer: Buffer): StoredResume {
+    this.evictIfFull();
     const resumeId = `resume_${crypto.randomBytes(8).toString('hex')}`;
     const stored: StoredResume = {
       resumeId,
@@ -33,13 +35,13 @@ class ResumeStorage {
   }
 
   public saveTextResume(text: string, name: string = 'pasted_resume.txt'): StoredResume {
+    this.evictIfFull();
     const resumeId = `resume_${crypto.randomBytes(8).toString('hex')}`;
-    const buffer = Buffer.from(text, 'utf-8');
     const stored: StoredResume = {
       resumeId,
       filename: name,
       mimetype: 'text/plain',
-      buffer,
+      buffer: null,
       text,
       uploadedAt: new Date(),
     };
@@ -51,6 +53,16 @@ class ResumeStorage {
     return this.resumes.get(resumeId);
   }
 
+  /**
+   * Immediately clears raw binary buffer to reclaim memory once text extraction is complete.
+   */
+  public releaseBuffer(resumeId: string): void {
+    const existing = this.resumes.get(resumeId);
+    if (existing && existing.buffer) {
+      existing.buffer = null;
+    }
+  }
+
   public updateResume(resumeId: string, updates: Partial<StoredResume>): void {
     const existing = this.resumes.get(resumeId);
     if (existing) {
@@ -60,6 +72,13 @@ class ResumeStorage {
 
   public deleteResume(resumeId: string): boolean {
     return this.resumes.delete(resumeId);
+  }
+
+  private evictIfFull(): void {
+    if (this.resumes.size >= this.MAX_STORED) {
+      const oldestKey = this.resumes.keys().next().value;
+      if (oldestKey) this.resumes.delete(oldestKey);
+    }
   }
 
   private cleanup(): void {

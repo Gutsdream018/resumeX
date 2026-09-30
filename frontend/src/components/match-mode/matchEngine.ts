@@ -12,6 +12,7 @@ import {
   ContradictionItem,
   RelevantExperienceItem,
 } from './types';
+import { API_BASE } from '../../services/api';
 
 // Standard technical vocabulary for fallback cross-referencing
 const TECH_SKILLS = [
@@ -418,7 +419,7 @@ export async function fetchJobMatchAnalysis(
     const structuredResume = analysis?.extractedData || analysis?.structuredResume;
     const atsScore = analysis?.score?.ats || analysis?.overallScore || 75;
 
-    const res = await fetch('/api/job-match/analyze', {
+    const res = await fetch(`${API_BASE}/job-match/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

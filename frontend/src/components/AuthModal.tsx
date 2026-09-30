@@ -344,64 +344,97 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
 
-        {/* Separate Small Switcher Tabs: Log In & Sign In / Sign Up */}
+        {/* Single Sliding Mode Toggle Switch (One Pull) */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            borderBottom: '1px solid #1E1E1E',
+            padding: '12px 22px 10px',
             background: '#0B0B0B',
+            borderBottom: '1px solid #1E1E1E',
           }}
         >
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('login');
-              setErrorMessage(null);
-            }}
+          <div
             style={{
-              padding: '12px 16px',
-              fontSize: '0.9rem',
-              fontWeight: activeTab === 'login' ? 800 : 500,
-              color: activeTab === 'login' ? '#FFFFFF' : '#777777',
-              background: activeTab === 'login' ? 'rgba(227, 27, 43, 0.08)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'login' ? '2.5px solid #E31B2B' : '2.5px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              backgroundColor: '#161616',
+              border: '1px solid #282828',
+              borderRadius: '10px',
+              padding: '3px',
+              position: 'relative',
+              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.4)',
             }}
           >
-            <span>Log In</span>
-          </button>
+            {/* Sliding Pill Track Indicator */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '3px',
+                bottom: '3px',
+                left: activeTab === 'login' ? '3px' : 'calc(50% + 1px)',
+                width: 'calc(50% - 4px)',
+                backgroundColor: '#E31B2B',
+                borderRadius: '8px',
+                transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: '0 2px 10px rgba(227, 27, 43, 0.45)',
+                zIndex: 1,
+              }}
+            />
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('signup');
-              setErrorMessage(null);
-            }}
-            style={{
-              padding: '12px 16px',
-              fontSize: '0.9rem',
-              fontWeight: activeTab === 'signup' ? 800 : 500,
-              color: activeTab === 'signup' ? '#FFFFFF' : '#777777',
-              background: activeTab === 'signup' ? 'rgba(227, 27, 43, 0.08)' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'signup' ? '2.5px solid #E31B2B' : '2.5px solid transparent',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>Sign Up / Create</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('login');
+                setErrorMessage(null);
+              }}
+              style={{
+                flex: 1,
+                padding: '9px 16px',
+                border: 'none',
+                background: 'transparent',
+                color: activeTab === 'login' ? '#FFFFFF' : '#888888',
+                fontSize: '0.86rem',
+                fontWeight: activeTab === 'login' ? 800 : 600,
+                cursor: 'pointer',
+                position: 'relative',
+                zIndex: 2,
+                transition: 'color 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                minHeight: '38px',
+              }}
+            >
+              <span>Log In</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('signup');
+                setErrorMessage(null);
+              }}
+              style={{
+                flex: 1,
+                padding: '9px 16px',
+                border: 'none',
+                background: 'transparent',
+                color: activeTab === 'signup' ? '#FFFFFF' : '#888888',
+                fontSize: '0.86rem',
+                fontWeight: activeTab === 'signup' ? 800 : 600,
+                cursor: 'pointer',
+                position: 'relative',
+                zIndex: 2,
+                transition: 'color 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                minHeight: '38px',
+              }}
+            >
+              <span>Sign Up</span>
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}

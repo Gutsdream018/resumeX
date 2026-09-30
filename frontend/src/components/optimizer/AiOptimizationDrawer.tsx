@@ -56,6 +56,7 @@ interface AiOptimizationDrawerProps {
   onOpenCompareModal: (version: VersionSnapshot) => void;
   onScrollToSection: (sectionKey: string) => void;
   overallScore: number;
+  onOpenFullOptimize?: (mode: 'ats_general' | 'tailored') => void;
 }
 
 export const AiOptimizationDrawer: React.FC<AiOptimizationDrawerProps> = ({
@@ -72,6 +73,7 @@ export const AiOptimizationDrawer: React.FC<AiOptimizationDrawerProps> = ({
   onOpenCompareModal,
   onScrollToSection,
   overallScore,
+  onOpenFullOptimize,
 }) => {
   const [activeTab, setActiveTab] = useState<'recommendations' | 'checks' | 'history'>('recommendations');
   const [isEditingSuggestion, setIsEditingSuggestion] = useState(false);
@@ -676,6 +678,66 @@ export const AiOptimizationDrawer: React.FC<AiOptimizationDrawerProps> = ({
                   </div>
                 ) : (
                   <>
+                    {/* 1-Click Optimize All Hero Card */}
+                    {onOpenFullOptimize && pendingRecs.length > 0 && (
+                      <div
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(227, 27, 43, 0.16) 0%, rgba(20, 20, 20, 0.95) 100%)',
+                          border: '1px solid rgba(227, 27, 43, 0.4)',
+                          borderRadius: '8px',
+                          padding: '12px 14px',
+                          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Sparkles size={14} color="#E31B2B" />
+                            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#FFF' }}>
+                              One-Click Whole Resume Rewrite
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 700,
+                              color: '#10B981',
+                              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            +{Math.min(25, pendingRecs.length * 2)} Score
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.72rem', color: '#AAA', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                          Single click rewrites all {pendingRecs.length} areas across Summary, Experience, and Skills using Google XYZ formulas in one pass.
+                        </p>
+                        <button
+                          onClick={() => onOpenFullOptimize('ats_general')}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            backgroundColor: '#E31B2B',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.76rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 10px rgba(227, 27, 43, 0.35)',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Sparkles size={13} />
+                          <span>Optimize Entire Resume (1-Click)</span>
+                        </button>
+                      </div>
+                    )}
+
                     {/* High Priority */}
                     {highPriorityRecs.length > 0 && (
                       <div>

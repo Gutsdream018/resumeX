@@ -22,6 +22,9 @@ import { AIInsightPanel } from './overview/AIInsightPanel';
 import { PriorityActions } from './overview/PriorityActions';
 import { ResumeEvolution } from './overview/ResumeEvolution';
 import { ScoreTransitionCard } from './overview/ScoreTransitionCard';
+import { NextBestActionCard } from './overview/NextBestActionCard';
+import { WhatIfSimulator } from './overview/WhatIfSimulator';
+import { SCORE_BANDS, SCORE_CATEGORIES_CONFIG, getRubricVersion } from '../config/scoreCategories';
 
 interface DashboardOverviewProps {
   analysis: ResumeAnalysisResult;
@@ -103,13 +106,27 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <ScoreTransitionCard
           analysis={analysis}
           onNavigate={() => onNavigateTab('ats-score')}
+          onNavigateTab={onNavigateTab}
+          onOpenScoreExplanation={() => setShowScoreExplanationModal(true)}
         />
 
-        {/* SECTION 1: Resume Health Core (Radial 7-dimension central intelligence) */}
+        {/* Highest-Impact Next Best Action Card (Phase 4b) */}
+        <NextBestActionCard
+          analysis={analysis}
+          onNavigateTab={onNavigateTab}
+        />
+
+        {/* SECTION 1: Resume Health Core (Radial multi-ring radar + live interaction) */}
         <ResumeHealthCore
           analysis={analysis}
           onNavigateTab={onNavigateTab}
           onOpenScoreExplanation={() => setShowScoreExplanationModal(true)}
+        />
+
+        {/* What-If Score Simulator (Phase 4d) */}
+        <WhatIfSimulator
+          analysis={analysis}
+          onNavigateTab={onNavigateTab}
         />
       </section>
 
@@ -297,9 +314,69 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </div>
 
             <p style={{ fontSize: '0.86rem', color: '#B0B0B0', lineHeight: 1.5, marginBottom: '18px' }}>
-              {diagnostic?.scoreExplanation?.summary ||
-                'Your score is calculated deterministically across 7 structural dimensions: ATS Readability (20%), Keyword Relevance (20%), Experience Quality (20%), Project Detail (15%), Formatting (10%), Education (5%), and Measurable Outcomes (10%).'}
+              Your score is evaluated deterministically against <strong>{getRubricVersion()}</strong> across 6 foundational dimensions weighted to mimic modern ATS parsers and recruiter triage standards.
             </p>
+
+            {/* Score Band Legend (Phase 4f) */}
+            <div style={{ marginBottom: '18px', background: '#121212', padding: '14px', borderRadius: '10px', border: '1px solid #222222' }}>
+              <strong style={{ color: '#E50920', fontSize: '0.78rem', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Score Band Thresholds
+              </strong>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+                {SCORE_BANDS.map((band) => (
+                  <div
+                    key={band.label}
+                    style={{
+                      background: '#181818',
+                      border: '1px solid #282828',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: band.color }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#EDEDED' }}>{band.label}</span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#888888', paddingLeft: '14px' }}>
+                      {band.min === 0 ? `< ${band.max + 1}` : `${band.min} – ${band.max}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Category Weights (Phase 1) */}
+            <div style={{ marginBottom: '18px', background: '#121212', padding: '14px', borderRadius: '10px', border: '1px solid #222222' }}>
+              <strong style={{ color: '#EDEDED', fontSize: '0.78rem', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Scoring Dimensions & Weights
+              </strong>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
+                {SCORE_CATEGORIES_CONFIG.map((cat) => (
+                  <div
+                    key={cat.id}
+                    style={{
+                      background: '#181818',
+                      border: '1px solid #252525',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.78rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: cat.color }} />
+                      <span style={{ color: '#C0C0C0', fontWeight: 500 }}>{cat.label}</span>
+                    </div>
+                    <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{cat.weight}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <div style={{ marginBottom: '20px', background: '#141414', padding: '14px', borderRadius: '10px', border: '1px solid #222222' }}>
               <strong style={{ color: '#E50920', fontSize: '0.78rem', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>

@@ -6,9 +6,14 @@ import { MatchMode } from './match-mode/MatchMode';
 interface JobMatchPageProps {
   analysis: ResumeAnalysisResult;
   onNavigateTab?: (tabId: string) => void;
+  initialJobDescription?: string;
 }
 
-export const JobMatchPage: React.FC<JobMatchPageProps> = ({ analysis, onNavigateTab }) => {
+export const JobMatchPage: React.FC<JobMatchPageProps> = ({
+  analysis,
+  onNavigateTab,
+  initialJobDescription,
+}) => {
   return (
     <div>
       {onNavigateTab && (
@@ -52,6 +57,7 @@ export const JobMatchPage: React.FC<JobMatchPageProps> = ({ analysis, onNavigate
       <MatchMode
         analysis={analysis}
         onNavigateTab={onNavigateTab}
+        initialJobDescription={initialJobDescription}
       />
     </div>
   );

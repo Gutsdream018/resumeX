@@ -3,6 +3,8 @@ import { SYSTEM_PROMPT, buildAnalysisUserPrompt } from '../prompts/resumeAnalysi
 import { RawAIResponseSchema, extractAndParseJSON } from '../validation/schema.js';
 import { calculateWeightedScore } from './scorer.js';
 import { ResumeAnalysisResult, RawAIResponse, BulletPointImprovement, CategoryScores } from '../types/index.js';
+import { globalAnalysisCache } from './cacheService.js';
+import { cleanResumeTextForLlm } from '../utils/textCleaner.js';
 
 export interface EvaluatorOptions {
   forceHeuristic?: boolean;
@@ -17,11 +19,19 @@ export async function evaluateResumeText(
   resumeText: string,
   options: EvaluatorOptions = {}
 ): Promise<ResumeAnalysisResult> {
+  const cacheKey = globalAnalysisCache.computeKey(resumeText, options.fileType);
+  const cached = globalAnalysisCache.get<ResumeAnalysisResult>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
   if (apiKey && !options.forceHeuristic) {
     try {
-      return await evaluateWithGemini(resumeText, apiKey, options);
+      const result = await evaluateWithGemini(resumeText, apiKey, options);
+      globalAnalysisCache.set(cacheKey, result);
+      return result;
     } catch (err: any) {
       console.warn('Gemini API evaluation failed or timed out. Falling back to Heuristic Engine:', err.message);
       // Fall through to heuristic evaluation
@@ -29,7 +39,9 @@ export async function evaluateResumeText(
   }
 
   // Built-in intelligent heuristic engine
-  return evaluateWithHeuristicEngine(resumeText, options);
+  const heuristicResult = evaluateWithHeuristicEngine(resumeText, options);
+  globalAnalysisCache.set(cacheKey, heuristicResult);
+  return heuristicResult;
 }
 
 /**
@@ -46,11 +58,13 @@ async function evaluateWithGemini(
     generationConfig: {
       temperature: 0.2,
       responseMimeType: 'application/json',
+      maxOutputTokens: 2048,
     },
     systemInstruction: SYSTEM_PROMPT,
   });
 
-  const prompt = buildAnalysisUserPrompt(resumeText);
+  const cleanedText = cleanResumeTextForLlm(resumeText, 3500);
+  const prompt = buildAnalysisUserPrompt(cleanedText);
   const result = await model.generateContent(prompt);
   const rawResponseText = result.response.text();
 

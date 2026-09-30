@@ -437,7 +437,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           background: rgba(227, 27, 43, 0.2) !important;
           transform: scale(1.08);
         }
-        @media (max-width: 960px) {
+        @media (max-width: 1024px) {
           .hero-grid {
             grid-template-columns: 1fr !important;
             gap: 36px !important;

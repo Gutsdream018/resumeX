@@ -1,6 +1,7 @@
 import { ResumeAnalysisResult, SampleResume } from '../types';
 
-const API_BASE = '/api';
+const RAW_API_URL = (import.meta.env.VITE_API_URL || '').trim();
+export const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/+$/, '')}/api` : '/api';
 
 export class ApiError extends Error {
   constructor(message: string, public status?: number) {
@@ -274,7 +275,8 @@ export async function analyzeResumeText(text: string): Promise<ResumeAnalysisRes
     throw new ApiError(data.error || `Analysis failed with status ${res.status}`, res.status);
   }
 
-  return data.analysis;
+  const rawAnalysis = data.analysis || data;
+  return normalizeAnalysisResult(rawAnalysis);
 }
 
 export async function matchResumeToJob(resumeText: string, jobDescription: string): Promise<any> {
@@ -400,4 +402,455 @@ export async function getMissingInfoPromptApi(params: {
   return data.prompt;
 }
 
+// ============================================================================
+// Job Discovery & Match API Client Methods
+// ============================================================================
+
+export async function fetchResumeProfileApi(params: {
+  userId?: string;
+  resumeId?: string;
+  resumeText?: string;
+  structuredResume?: any;
+}): Promise<{ profile: any; preferences: any; cached: boolean }> {
+  const res = await fetch(`${API_BASE}/jobs/profile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to extract resume profile', res.status);
+  }
+  return data;
+}
+
+export async function updateJobPreferencesApi(params: {
+  userId?: string;
+  resumeId?: string;
+  preferences: any;
+}): Promise<{ preferences: any }> {
+  const res = await fetch(`${API_BASE}/jobs/preferences`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to update preferences', res.status);
+  }
+  return data;
+}
+
+export async function searchMatchedJobsApi(params: {
+  userId?: string;
+  resumeId?: string;
+  resumeText?: string;
+  structuredResume?: any;
+  atsScore?: number;
+  preferences?: any;
+}): Promise<{
+  success: boolean;
+  total: number;
+  jobs: any[];
+  preferences: any;
+  profile: any;
+}> {
+  const res = await fetch(`${API_BASE}/jobs/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to search matched jobs', res.status);
+  }
+  return data;
+}
+
+export async function saveTailoredResumeApi(params: {
+  originalResumeId: string;
+  jobId: string;
+  jobTitle?: string;
+  company?: string;
+  content: any;
+  targetRequirements?: string[];
+}): Promise<{ variant: any }> {
+  const res = await fetch(`${API_BASE}/jobs/tailor`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to save tailored resume variant', res.status);
+  }
+  return data;
+}
+
+export async function fetchTailoredResumesApi(resumeId: string): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/jobs/tailored/${encodeURIComponent(resumeId)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to load tailored resume variants', res.status);
+  }
+  return data.variants || [];
+}
+
+// Aliases matching JobsDiscoveryPage naming
+export const searchJobsApi = async (params: any) => {
+  const res = await searchMatchedJobsApi({
+    userId: params.userId,
+    resumeId: params.resumeId,
+    structuredResume: params.analysis?.structuredResume || params.analysis?.structured,
+    resumeText: params.analysis?.rawText || params.analysis?.text,
+    atsScore: params.analysis?.overall_score,
+    preferences: {
+      targetRole: params.role,
+      location: params.location,
+      workplaceType: params.isRemote ? 'remote' : 'any',
+      salaryMin: params.minSalary,
+      countryCode: params.country || 'in',
+      seniority: params.seniority,
+    },
+  });
+  return {
+    matches: res.jobs || [],
+    profile: res.profile ? { ...res.profile, preferences: res.preferences } : null,
+    suggestedRoles: (res as any).suggestedRoles || [],
+    total: res.total || 0,
+  };
+};
+
+export const updateResumePreferencesApi = async (resumeId: string, preferences: any) => {
+  return updateJobPreferencesApi({ resumeId, preferences });
+};
+
+export const getResumeProfileApi = async (resumeId: string) => {
+  return fetchResumeProfileApi({ resumeId });
+};
+
+export async function trackJobClickApi(jobId: string, userId?: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/jobs/track-click`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, userId: userId || 'anonymous_user' }),
+    });
+  } catch (err) {
+    console.warn('Failed to track job click:', err);
+  }
+}
+
+export async function checkJobLinkApi(url: string, jobId?: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/jobs/check-link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, jobId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to check link', res.status);
+  }
+  return data.link;
+}
+
+export async function interactJobApi(
+  jobId: string,
+  action: 'save' | 'unsave' | 'hide' | 'unhide',
+  userId?: string,
+  resumeId?: string
+): Promise<any> {
+  const res = await fetch(`${API_BASE}/jobs/interact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobId, action, userId, resumeId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to update job interaction', res.status);
+  }
+  return data;
+}
+
+export async function getSavedJobsApi(userId?: string): Promise<any[]> {
+  const uid = userId || 'anonymous_user';
+  const res = await fetch(`${API_BASE}/jobs/saved?userId=${encodeURIComponent(uid)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to fetch saved jobs', res.status);
+  }
+  return data.jobs || [];
+}
+
+export async function getApplicationsApi(userId?: string): Promise<any[]> {
+  const uid = userId || 'anonymous_user';
+  const res = await fetch(`${API_BASE}/jobs/applications?userId=${encodeURIComponent(uid)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to fetch applications', res.status);
+  }
+  return data.applications || [];
+}
+
+export async function createApplicationApi(payload: {
+  userId?: string;
+  resumeId?: string;
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  location?: string;
+  applyUrl?: string;
+  tailoredResumeId?: string;
+  status?: string;
+  notes?: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE}/jobs/applications`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to create application', res.status);
+  }
+  return data.application;
+}
+
+export async function updateApplicationStatusApi(
+  id: string,
+  status: string,
+  notes?: string
+): Promise<any> {
+  const res = await fetch(`${API_BASE}/jobs/applications/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, notes }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to update application', res.status);
+  }
+  return data.application;
+}
+
+export async function deleteApplicationApi(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/jobs/applications/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.error || 'Failed to delete application', res.status);
+  }
+}
+
+export async function generateCoverLetterApi(payload: {
+  resumeText?: string;
+  structuredResume?: any;
+  jobTitle: string;
+  company: string;
+  jobDescription?: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE}/jobs/cover-letter`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to generate cover letter', res.status);
+  }
+  return data;
+}
+
+// Score History Snapshots (Phase 4c)
+export interface ScoreSnapshotItem {
+  id: string;
+  userId: string;
+  resumeId: string;
+  version: number;
+  score: number;
+  categoryScores?: Record<string, number>;
+  timestamp: string;
+}
+
+export async function fetchScoreHistoryApi(
+  resumeId: string
+): Promise<{ snapshots: ScoreSnapshotItem[]; delta: number }> {
+  try {
+    const res = await fetch(`${API_BASE}/score-history/${encodeURIComponent(resumeId)}`);
+    if (res.ok) {
+      const data = await res.json();
+      return { snapshots: data.snapshots || [], delta: data.delta || 0 };
+    }
+  } catch (err) {
+    console.warn('Network fetch for score history failed, using local storage cache:', err);
+  }
+
+  // Fallback to localStorage cache
+  try {
+    const local = localStorage.getItem(`resumex_score_history_${resumeId}`);
+    if (local) {
+      const parsed = JSON.parse(local);
+      const list: ScoreSnapshotItem[] = Array.isArray(parsed) ? parsed : [];
+      let delta = 0;
+      if (list.length >= 2) {
+        delta = list[list.length - 1].score - list[list.length - 2].score;
+      }
+      return { snapshots: list, delta };
+    }
+  } catch (e) {}
+
+  return { snapshots: [], delta: 0 };
+}
+
+export async function saveScoreSnapshotApi(params: {
+  userId?: string;
+  resumeId: string;
+  score: number;
+  categoryScores?: Record<string, number>;
+}): Promise<{ snapshot: ScoreSnapshotItem; delta: number; totalSnapshots: number }> {
+  let backendResult: any = null;
+  try {
+    const res = await fetch(`${API_BASE}/score-history/snapshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (res.ok) {
+      backendResult = await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend snapshot persistence failed, using local store:', err);
+  }
+
+  // Update local storage cache
+  try {
+    const localKey = `resumex_score_history_${params.resumeId}`;
+    const local = localStorage.getItem(localKey);
+    const list: ScoreSnapshotItem[] = local ? JSON.parse(local) : [];
+
+    const snapshot: ScoreSnapshotItem = backendResult?.snapshot || {
+      id: `snap_${Date.now()}`,
+      userId: params.userId || 'anonymous_user',
+      resumeId: params.resumeId,
+      version: list.length + 1,
+      score: params.score,
+      categoryScores: params.categoryScores,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Don't duplicate exact same score if just created seconds ago
+    const last = list[list.length - 1];
+    if (!last || last.score !== snapshot.score || Date.now() - new Date(last.timestamp).getTime() > 10000) {
+      list.push(snapshot);
+      localStorage.setItem(localKey, JSON.stringify(list));
+    }
+
+    const prevScore = list.length >= 2 ? list[list.length - 2].score : snapshot.score;
+    const delta = snapshot.score - prevScore;
+
+    return {
+      snapshot,
+      delta,
+      totalSnapshots: list.length,
+    };
+  } catch (e) {
+    return {
+      snapshot: {
+        id: `snap_${Date.now()}`,
+        userId: params.userId || 'anonymous_user',
+        resumeId: params.resumeId,
+        version: 1,
+        score: params.score,
+        timestamp: new Date().toISOString(),
+      },
+      delta: 0,
+      totalSnapshots: 1,
+    };
+  }
+}
+
+// ============================================================================
+// One-Click Full Resume Optimization API
+// ============================================================================
+
+export async function startFullOptimizationApi(params: {
+  resumeId?: string;
+  mode?: 'ats_general' | 'tailored';
+  jobId?: string;
+  canonicalResume?: any;
+  targetJobDescription?: string;
+  targetJobTitle?: string;
+  targetCompany?: string;
+  wait?: boolean;
+}): Promise<{ success: boolean; jobId: string; status: string; job: any }> {
+  const res = await fetch(`${API_BASE}/optimize/full`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to start full resume optimization', res.status);
+  }
+  return data;
+}
+
+export async function getOptimizationJobStatusApi(jobId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/optimize/full/${jobId}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to fetch optimization job status', res.status);
+  }
+  return data.job;
+}
+
+export async function cancelOptimizationJobApi(jobId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/optimize/full/${jobId}/cancel`, {
+    method: 'POST',
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(data.error || 'Failed to cancel optimization job', res.status);
+  }
+  return data;
+}
+
+export function subscribeOptimizationStream(
+  jobId: string,
+  onEvent: (event: any) => void,
+  onError?: (err: any) => void
+): () => void {
+  const eventSource = new EventSource(`${API_BASE}/optimize/full/${jobId}/stream`);
+
+  eventSource.onmessage = (event) => {
+    try {
+      const parsed = JSON.parse(event.data);
+      onEvent(parsed);
+      if (
+        parsed.type === 'job_completed' ||
+        parsed.type === 'job_failed' ||
+        parsed.type === 'job_cancelled'
+      ) {
+        eventSource.close();
+      }
+    } catch (e) {
+      // Event parse error
+    }
+  };
+
+  eventSource.onerror = (err) => {
+    if (onError) onError(err);
+    eventSource.close();
+  };
+
+  return () => {
+    eventSource.close();
+  };
+}
 

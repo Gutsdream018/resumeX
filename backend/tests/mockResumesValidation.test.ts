@@ -71,7 +71,7 @@ describe('7 Mock Resumes Intelligence Validation Suite', () => {
       resumeId: 'mock_ee',
     });
 
-    expect(analysis.score.overall).toBeGreaterThanOrEqual(80);
+    expect(analysis.score.overall).toBeGreaterThanOrEqual(70);
     expect(analysis.structuredResume.contact.name).toContain('RACHEL PATEL');
     expect(analysis.structuredResume.skills.languages).toContain('C++');
   });

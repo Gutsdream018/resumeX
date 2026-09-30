@@ -131,6 +131,10 @@ export interface ScoreDeltaResult {
 
 export interface ResumeAnalysisResult {
   resumeId?: string;
+  id?: string;
+  fileName?: string;
+  rawText?: string;
+  text?: string;
   overall_score: number;
   score?: {
     overall: number;
@@ -328,3 +332,199 @@ export interface CanonicalResume {
   certifications?: (string | { name: string; issuer?: string })[];
   achievements?: string[];
 }
+
+// ============================================================================
+// Job Discovery & Matching Types
+// ============================================================================
+
+export interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  isRemote: boolean;
+  salaryMin?: number;
+  salaryMax?: number;
+  description: string;
+  source: string;
+  applyUrl: string;
+  postedAt: string;
+  cachedAt?: string;
+  limitedDescription?: boolean;
+  finalUrl?: string;
+  applyHost?: string;
+  isAts?: boolean;
+  applyLabel?: string;
+  linkStatus?: 'ok' | 'redirected' | 'dead' | 'unknown';
+  lastCheckedAt?: string;
+  seniority?: 'entry' | 'mid' | 'senior' | 'lead';
+}
+
+export interface JobPreferences {
+  targetRole: string;
+  adjacentRoles?: string[];
+  location: string;
+  workplaceType: 'remote' | 'hybrid' | 'onsite' | 'any';
+  salaryMin?: number;
+  salaryMax?: number;
+  currency?: string;
+  countryCode?: string;
+}
+
+export interface ResumeProfile {
+  candidateName?: string;
+  skills: string[];
+  titles: string[];
+  yearsExperience: number;
+  education: {
+    highestDegree: string;
+    field?: string;
+    institution?: string;
+  };
+  industries: string[];
+  seniority: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'executive';
+  location?: string;
+  rawSummary?: string;
+}
+
+export interface ScoredJobMatch {
+  job: Job;
+  overallScore: number;
+  potentialScore?: number;
+  matchedSkills: string[];
+  missingRequirements: {
+    mustHave: string[];
+    niceToHave: string[];
+  };
+  recommendations: Array<{
+    title: string;
+    suggestedAction: string;
+    targetSection: string;
+    whyItMatters: string;
+  }>;
+  limitedDescription: boolean;
+  cached?: boolean;
+  matchTier?: 'strong' | 'moderate' | 'stretch';
+  seniorityTier?: 'entry' | 'mid' | 'senior' | 'lead';
+  seniorityPenalized?: boolean;
+  isSaved?: boolean;
+  isHidden?: boolean;
+}
+
+export interface TailoredResumeRecord {
+  id: string;
+  originalResumeId: string;
+  jobId: string;
+  jobTitle?: string;
+  company?: string;
+  content: any;
+  targetRequirements?: string[];
+  createdAt: string;
+}
+
+export type CandidatePreferences = Partial<JobPreferences>;
+export type ResumeProfileData = ResumeProfile & { preferences?: CandidatePreferences };
+
+export interface JobSearchParams {
+  userId?: string;
+  resumeId?: string;
+  analysis?: any;
+  role?: string;
+  location?: string;
+  isRemote?: boolean;
+  minSalary?: number;
+  country?: string;
+  seniority?: string;
+}
+
+export type ApplicationStatus = 'saved' | 'tailored' | 'applied' | 'interview' | 'offer' | 'rejected';
+
+export interface JobApplication {
+  id: string;
+  userId: string;
+  resumeId: string;
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  location: string;
+  applyUrl: string;
+  tailoredResumeId?: string;
+  status: ApplicationStatus;
+  notes?: string;
+  appliedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SuggestedRoleChip = string | {
+  role: string;
+  count?: number;
+  active?: boolean;
+};
+
+export interface CoverLetterDraft {
+  coverLetter: string;
+  candidateName?: string;
+  jobTitle?: string;
+  company?: string;
+  highlights?: string[];
+}
+
+export type FullOptimizationMode = 'ats_general' | 'tailored';
+
+export interface OptimizedBullet {
+  id: string;
+  section: 'summary' | 'experience' | 'projects' | 'skills' | 'education';
+  parentContext?: string;
+  originalText: string;
+  newText: string;
+  reason: string;
+  evidence: string[];
+  needsUserNumber: boolean;
+  placeholders: string[];
+  applied?: boolean;
+}
+
+export interface SectionOptimizationResult {
+  section: 'summary' | 'experience' | 'projects' | 'skills' | 'education';
+  title: string;
+  status: 'completed' | 'unchanged' | 'failed';
+  bullets: OptimizedBullet[];
+  originalText?: string;
+  newText?: string;
+  error?: string;
+}
+
+export interface FullOptimizationJob {
+  jobId: string;
+  userId: string;
+  resumeId?: string;
+  mode: FullOptimizationMode;
+  targetJobId?: string;
+  targetJobTitle?: string;
+  targetCompany?: string;
+  targetJobDescription?: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  progressPercent: number;
+  currentSection?: 'summary' | 'experience' | 'projects' | 'skills' | 'education';
+  completedSections: ('summary' | 'experience' | 'projects' | 'skills' | 'education')[];
+  sections: Record<'summary' | 'experience' | 'projects' | 'skills' | 'education', SectionOptimizationResult>;
+  allBullets: OptimizedBullet[];
+  unsupportedJobGaps: string[];
+  keywordsAdded: string[];
+  placeholdersCount: number;
+  initialAtsScore: number;
+  estimatedOptimizedScore: number;
+  scoreDelta: number;
+  initialMatchScore?: number;
+  estimatedOptimizedMatchScore?: number;
+  matchScoreDelta?: number;
+  originalResume: CanonicalResume;
+  optimizedResume: CanonicalResume;
+  error?: string;
+  startedAt: number;
+  finishedAt?: number;
+}
+
+
+

@@ -27,7 +27,9 @@ export type DashboardTab =
   | 'skills'
   | 'suggestions'
   | 'job-match'
-  | 'sections';
+  | 'sections'
+  | 'jobs'
+  | 'applications';
 
 interface DashboardSidebarProps {
   activeTab: DashboardTab;
@@ -59,6 +61,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       icon: <Target size={18} />,
       badge: overallScore !== undefined ? String(overallScore) : undefined,
     },
+    { id: 'jobs', label: 'Find Jobs', icon: <Briefcase size={18} color="#E31B2B" />, badge: 'MATCH' },
+    { id: 'applications', label: 'Applications', icon: <FileCheck2 size={18} color="#10B981" />, badge: 'TRACK' },
     { id: 'resume-analysis', label: 'Document Critique', icon: <FileSearch size={18} /> },
     { id: 'optimizer', label: 'Resume Optimizer', icon: <Sparkles size={18} color="#E31B2B" />, badge: 'AI' },
     { id: 'keywords', label: 'Keywords', icon: <Key size={18} /> },

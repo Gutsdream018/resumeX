@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { upload } from '../middleware/upload.middleware.js';
 import { uploadResume, analyzeResume, improveBullet, getResume, applyRevision } from '../controllers/resume.controller.js';
 import { rescoreResume, factGuidedRewrite, getMissingInfoPrompt } from '../controllers/optimizer.controller.js';
+import { startFullOptimization } from '../controllers/fullOptimizer.controller.js';
 
 export const resumeRouter = Router();
 
@@ -24,4 +25,6 @@ resumeRouter.post('/apply-revision', applyRevision);
 resumeRouter.post('/optimizer/re-score', rescoreResume);
 resumeRouter.post('/optimizer/fact-rewrite', factGuidedRewrite);
 resumeRouter.post('/optimizer/missing-info', getMissingInfoPrompt);
+resumeRouter.post('/optimize/full', startFullOptimization);
+
 

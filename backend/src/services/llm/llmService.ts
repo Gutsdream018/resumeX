@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { StructuredResume, StructuredRecommendation } from '../../models/resume.types.js';
 import { extractAndParseJSON } from '../../validation/schema.js';
+import { globalAnalysisCache } from '../cacheService.js';
+import { cleanResumeTextForLlm } from '../../utils/textCleaner.js';
 
 export interface LlmAnalysisOutput {
   strengths: string[];
@@ -36,6 +38,16 @@ export async function runLlmAnalysis(
     strengths: string[];
   }
 ): Promise<LlmAnalysisOutput> {
+  const cacheKey = globalAnalysisCache.computeKey(
+    'llm_rec',
+    rawText,
+    String(deterministicContext.scores.overall)
+  );
+  const cached = globalAnalysisCache.get<LlmAnalysisOutput>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const nvidiaApiKey = process.env.NVIDIA_API_KEY?.trim();
   const nvidiaModel = process.env.NVIDIA_MODEL?.trim() || 'meta/muse-glimmer-30b';
 
@@ -82,24 +94,20 @@ ${rawText.slice(0, 1500)}`;
           ],
           temperature: 0.2,
           top_p: 0.7,
-          max_tokens: 4096,
+          max_tokens: 1536,
         }),
-        signal: AbortSignal.timeout(90000),
+        signal: AbortSignal.timeout(60000),
       });
 
       const elapsed = Date.now() - startTime;
       if (response.ok) {
-        console.log(`[RECOMMENDATIONS] API response received (${elapsed}ms)`);
         const data: any = await response.json();
         const message = data?.choices?.[0]?.message;
         const content = message?.content || message?.reasoning_content || '';
-        console.log('[RECOMMENDATIONS] response parsed');
         const parsed: any = extractAndParseJSON(content);
-        console.log('[RECOMMENDATIONS] validation complete');
 
         if (parsed && Array.isArray(parsed.recommendations)) {
-          console.log(`[Muse] Analysis completed in ${elapsed}ms with ${parsed.recommendations.length} recommendations.`);
-          return {
+          const result: LlmAnalysisOutput = {
             strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 8) : [],
             criticalIssues: Array.isArray(parsed.criticalIssues) ? parsed.criticalIssues.slice(0, 8) : [],
             warnings: Array.isArray(parsed.warnings) ? parsed.warnings.slice(0, 8) : [],
@@ -112,6 +120,8 @@ ${rawText.slice(0, 1500)}`;
               suggestedText: String(r.suggestedText || ''),
             })),
           };
+          globalAnalysisCache.set(cacheKey, result);
+          return result;
         }
       } else {
         console.warn(`[Muse] NVIDIA API returned status ${response.status} in ${elapsed}ms. Falling back to deterministic rules.`);
@@ -131,30 +141,37 @@ ${rawText.slice(0, 1500)}`;
         generationConfig: {
           temperature: 0.2,
           responseMimeType: 'application/json',
+          maxOutputTokens: 1536,
         },
         systemInstruction: LLM_SYSTEM_PROMPT,
       });
 
       const userPrompt = `Evaluate this resume:
 STRUCTURED RESUME:
-${JSON.stringify(structuredResume, null, 2)}
+${JSON.stringify({
+  contact: structuredResume.contact,
+  summary: structuredResume.summary,
+  experience: structuredResume.experience.slice(0, 3),
+  skills: structuredResume.skills,
+  education: structuredResume.education.slice(0, 2),
+})}
 
 DETERMINISTIC DIAGNOSTICS:
 - Overall Score: ${deterministicContext.scores.overall}/100
 - ATS Compatibility: ${deterministicContext.scores.ats}/100
 - Experience Score: ${deterministicContext.scores.experience}/100
-- Identified Issues: ${deterministicContext.issues.join('; ')}
-- Identified Strengths: ${deterministicContext.strengths.join('; ')}
+- Identified Issues: ${deterministicContext.issues.slice(0, 4).join('; ')}
+- Identified Strengths: ${deterministicContext.strengths.slice(0, 4).join('; ')}
 
 RAW RESUME SNIPPET:
-${rawText.slice(0, 3000)}`;
+${cleanResumeTextForLlm(rawText, 2500)}`;
 
       const response = await model.generateContent(userPrompt);
       const textResponse = response.response.text();
       const parsed: any = extractAndParseJSON(textResponse);
 
       if (parsed && Array.isArray(parsed.recommendations)) {
-        return {
+        const result: LlmAnalysisOutput = {
           strengths: Array.isArray(parsed.strengths) ? parsed.strengths.slice(0, 8) : [],
           criticalIssues: Array.isArray(parsed.criticalIssues) ? parsed.criticalIssues.slice(0, 8) : [],
           warnings: Array.isArray(parsed.warnings) ? parsed.warnings.slice(0, 8) : [],
@@ -167,6 +184,8 @@ ${rawText.slice(0, 3000)}`;
             suggestedText: String(r.suggestedText || ''),
           })),
         };
+        globalAnalysisCache.set(cacheKey, result);
+        return result;
       }
     } catch (err: any) {
       console.warn('[runLlmAnalysis] Gemini API call failed or timed out. Falling back to deterministic analysis:', err.message);

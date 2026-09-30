@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ResumeSelector } from './ResumeSelector';
+import { ResumeSelector, DEFAULT_SAMPLE_RESUME } from './ResumeSelector';
 import { JobDescriptionInput } from './JobDescriptionInput';
 import { MatchAnalysisLoader } from './MatchAnalysisLoader';
 import { MatchScoreHeader } from './MatchScoreHeader';
@@ -36,9 +36,18 @@ export const MatchMode: React.FC<MatchModeProps> = ({
   onBackToHome,
 }) => {
   // Current resume text
-  const [resumeText, setResumeText] = useState<string>('');
+  const [resumeText, setResumeText] = useState<string>(() => {
+    if (analysis?.rawText) return analysis.rawText;
+    return DEFAULT_SAMPLE_RESUME;
+  });
   const [resumeName, setResumeName] = useState<string>('Uploaded Resume');
   const [jobDescription, setJobDescription] = useState<string>(initialJobDescription);
+
+  useEffect(() => {
+    if (initialJobDescription) {
+      setJobDescription(initialJobDescription);
+    }
+  }, [initialJobDescription]);
 
   // Status: 'input' | 'analyzing' | 'results'
   const [status, setStatus] = useState<'input' | 'analyzing' | 'results'>('input');

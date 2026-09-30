@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ResumeX Analyzer - Premium Black & Crimson Red Design System */
 
 :root {

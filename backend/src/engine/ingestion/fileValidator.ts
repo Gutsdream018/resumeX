@@ -4,7 +4,7 @@ export interface FileValidationConfig {
 }
 
 export const DEFAULT_VALIDATION_CONFIG: FileValidationConfig = {
-  maxSizeBytes: 15 * 1024 * 1024, // 15MB
+  maxSizeBytes: 10 * 1024 * 1024, // 10MB
   allowedExtensions: new Set(['pdf', 'docx', 'png', 'jpg', 'jpeg', 'webp']),
 };
 

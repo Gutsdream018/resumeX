@@ -477,17 +477,6 @@ export const FullPageResumeDocument: React.FC<FullPageResumeDocumentProps> = ({
                     <Check size={10} /> Optimized
                   </span>
                 )}
-
-                {recMap.has('summary') && !appliedRevisions.has('summary') && (
-                  <button
-                    className="doc-ai-subtle-sparkle-btn"
-                    onClick={() => onSelectIssue('summary')}
-                    title="Click to view AI optimization"
-                  >
-                    <Sparkles size={11} />
-                    <span>Improve</span>
-                  </button>
-                )}
               </div>
             </div>
 
@@ -677,18 +666,16 @@ export const FullPageResumeDocument: React.FC<FullPageResumeDocumentProps> = ({
                                 </span>
                               )}
 
-                              {rec && !isOptimized && (
-                                <button
-                                  className="doc-ai-subtle-sparkle-btn"
-                                  onClick={() => onSelectIssue(bulletKey)}
-                                  title="Click to view AI optimization"
-                                >
-                                  <Sparkles size={10} />
-                                  <span>Improve</span>
-                                </button>
-                              )}
-
                               <div className="doc-bullet-hover-toolbar">
+                                {rec && !isOptimized && (
+                                  <button
+                                    onClick={() => onSelectIssue(bulletKey)}
+                                    title="View AI suggestion for this sentence"
+                                    style={{ color: '#E31B2B' }}
+                                  >
+                                    <Sparkles size={10} />
+                                  </button>
+                                )}
                                 <button onClick={() => deleteBullet(expIdx, bIdx)} title="Delete bullet">
                                   <Trash2 size={10} />
                                 </button>

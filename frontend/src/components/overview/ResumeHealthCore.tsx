@@ -1,6 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowRight, ShieldCheck, Activity, Award, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { ArrowRight, HelpCircle, Sparkles, TrendingUp, CheckCircle2, AlertCircle, Info, ExternalLink } from 'lucide-react';
 import { ResumeAnalysisResult } from '../../types';
+import {
+  SCORE_CATEGORIES_CONFIG,
+  resolveCategoryScores,
+  ResolvedCategoryScore,
+  getScoreBand,
+  getRubricVersion,
+  computePotentialScore,
+  calculateRingGeometry,
+} from '../../config/scoreCategories';
+
+// Expose tunable timing constants at top of file (Phase 2 requirement)
+export const RING_MS = 1000;
+export const RING_STAGGER_MS = 120;
+export const COUNT_MS = 1200;
 
 interface ResumeHealthCoreProps {
   analysis: ResumeAnalysisResult;
@@ -8,163 +22,238 @@ interface ResumeHealthCoreProps {
   onOpenScoreExplanation?: () => void;
 }
 
-interface HealthDimension {
-  id: string;
-  name: string;
-  score: number;
-  weight: number;
-  color: string;
-  description: string;
-  targetTab: string;
-}
-
 export const ResumeHealthCore: React.FC<ResumeHealthCoreProps> = ({
   analysis,
   onNavigateTab,
   onOpenScoreExplanation,
 }) => {
-  const rawAny = analysis as any;
-  const targetScore = analysis.overall_score ?? rawAny?.score?.overall ?? 75;
+  const categories = useMemo(() => resolveCategoryScores(analysis), [analysis]);
+  const currentOverallScore = Math.max(0, Math.min(100, Math.round(analysis.overall_score || 75)));
+
+  // Target & Previous Score tracking for smooth score change transitions
+  const prevScoreRef = useRef<number>(currentOverallScore);
   const [displayScore, setDisplayScore] = useState<number>(0);
-  const [activeDimension, setActiveDimension] = useState<HealthDimension | null>(null);
+  const [scoreDelta, setScoreDelta] = useState<number | null>(null);
 
-  const cats = analysis.category_scores || {};
-  const diagnostic = analysis.diagnostic;
+  // Interaction: active focused/hovered category
+  const [hoveredCategory, setHoveredCategory] = useState<ResolvedCategoryScore | null>(null);
 
-  // 7 Data-Driven Dimensions
-  const dimensions: HealthDimension[] = [
-    {
-      id: 'ats',
-      name: 'ATS Readability',
-      score: cats.ats ?? rawAny?.score?.atsCompatibility ?? 78,
-      weight: 20,
-      color: '#10B981',
-      description: 'Section taxonomy, standard contact formatting, and parsable linear structure.',
-      targetTab: 'ats-score',
-    },
-    {
-      id: 'content',
-      name: 'Content Depth',
-      score: cats.content ?? Math.round(((cats.experience ?? 60) + (cats.skills ?? 60)) / 2),
-      weight: 20,
-      color: '#3B82F6',
-      description: 'Comprehensive coverage of professional background and role deliverables.',
-      targetTab: 'resume-analysis',
-    },
-    {
-      id: 'experience',
-      name: 'Experience Quality',
-      score: cats.experience ?? rawAny?.score?.experience ?? 68,
-      weight: 20,
-      color: '#8B5CF6',
-      description: 'Action-oriented bullet phrasing and clear engineering ownership.',
-      targetTab: 'experience',
-    },
-    {
-      id: 'skills',
-      name: 'Technical Skills',
-      score: cats.skills ?? rawAny?.score?.keywordRelevance ?? 74,
-      weight: 15,
-      color: '#E50920',
-      description: 'Verified technical competencies and industry-standard keyword density.',
-      targetTab: 'skills',
-    },
-    {
-      id: 'education',
-      name: 'Education Consistency',
-      score: rawAny?.score?.education ?? 90,
-      weight: 5,
-      color: '#F59E0B',
-      description: 'Accredited degree verification, institution hierarchy, and graduation timeline.',
-      targetTab: 'education',
-    },
-    {
-      id: 'impact',
-      name: 'Measurable Impact',
-      score: cats.impact ?? rawAny?.score?.achievements ?? 52,
-      weight: 10,
-      color: '#EC4899',
-      description: 'Quantified deliverables (% improvements, scale metrics, and business outcomes).',
-      targetTab: 'suggestions',
-    },
-    {
-      id: 'formatting',
-      name: 'Format & Layout',
-      score: cats.formatting ?? rawAny?.score?.formatting ?? 82,
-      weight: 10,
-      color: '#06B6D4',
-      description: 'Visual balance, consistent typography, bullet discipline, and single-column hygiene.',
-      targetTab: 'ats-score',
-    },
-  ];
+  // Animation & Life sequence states
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
+  const [sheenActive, setSheenActive] = useState<boolean>(false);
+  const [bandPillVisible, setBandPillVisible] = useState<boolean>(false);
+  const [isIdleActive, setIsIdleActive] = useState<boolean>(true);
 
-  // Animated Count-Up on Mount (600 - 1000ms)
+  // Parallax cursor offset on radar
+  const [parallax, setParallax] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Container refs for visibility & intersection observer
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const radarRef = useRef<SVGSVGElement | null>(null);
+
+  // Potential score calculation
+  const potential = useMemo(
+    () => computePotentialScore(currentOverallScore, analysis),
+    [currentOverallScore, analysis]
+  );
+  const rubricVersion = useMemo(() => getRubricVersion(analysis), [analysis]);
+
+  // Reduced motion preference
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }, []);
+
+  // Center display values: defaults to overall score or crossfades to active category (150ms transition)
+  const centerValue = hoveredCategory ? hoveredCategory.score : displayScore;
+  const centerLabel = hoveredCategory ? hoveredCategory.label : 'OVERALL';
+  const centerBand = getScoreBand(hoveredCategory ? hoveredCategory.score : currentOverallScore);
+
+  // 1. Load Sequence & Count-Up (driven by requestAnimationFrame, tabular-nums)
   useEffect(() => {
-    let startTimestamp: number | null = null;
-    const duration = 900;
+    if (prefersReducedMotion) {
+      setDisplayScore(currentOverallScore);
+      setHasLoaded(true);
+      setBandPillVisible(true);
+      return;
+    }
 
-    const step = (timestamp: number) => {
+    const startVal = hasLoaded ? prevScoreRef.current : 0;
+    const endVal = currentOverallScore;
+    const isScoreChange = hasLoaded && startVal !== endVal;
+
+    if (isScoreChange) {
+      setScoreDelta(endVal - startVal);
+      const timer = setTimeout(() => setScoreDelta(null), 3000);
+      prevScoreRef.current = endVal;
+    }
+
+    let startTimestamp: number | null = null;
+    const duration = isScoreChange ? 800 : COUNT_MS;
+
+    const animateCount = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      // Ease out cubic
+      const elapsed = timestamp - startTimestamp;
+      const progress = Math.min(elapsed / duration, 1);
+      // Cubic-bezier(0.22, 1, 0.36, 1) approximation
       const ease = 1 - Math.pow(1 - progress, 3);
-      setDisplayScore(Math.round(ease * targetScore));
+      const current = Math.round(startVal + (endVal - startVal) * ease);
+      setDisplayScore(current);
 
       if (progress < 1) {
-        requestAnimationFrame(step);
+        requestAnimationFrame(animateCount);
+      } else {
+        setDisplayScore(endVal);
+        if (!hasLoaded) {
+          setHasLoaded(true);
+          // Band pill fades in after count finishes
+          setTimeout(() => setBandPillVisible(true), 150);
+          // Soft sheen sweeps across radar at ~1.5s
+          setTimeout(() => {
+            setSheenActive(true);
+            setTimeout(() => setSheenActive(false), 800);
+          }, 300);
+        }
       }
     };
 
-    const frameId = requestAnimationFrame(step);
+    const frameId = requestAnimationFrame(animateCount);
     return () => cancelAnimationFrame(frameId);
-  }, [targetScore]);
+  }, [currentOverallScore, prefersReducedMotion]);
 
-  const getVerdict = (val: number) => {
-    if (val >= 80) return { label: 'STRONG ATS PROFILE', color: '#10B981' };
-    if (val >= 65) return { label: 'GOOD FOUNDATION', color: '#F59E0B' };
-    return { label: 'NEEDS OPTIMIZATION', color: '#E50920' };
-  };
+  // 2. Idle Life Pause on Visibility Change & Off-Screen (IntersectionObserver)
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsIdleActive(document.visibilityState === 'visible');
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
-  const verdict = getVerdict(targetScore);
-  const currentView = activeDimension || dimensions[0];
+    let observer: IntersectionObserver | null = null;
+    if (containerRef.current && typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          setIsIdleActive(entry.isIntersecting && document.visibilityState === 'visible');
+        },
+        { threshold: 0.15 }
+      );
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (observer) observer.disconnect();
+    };
+  }, []);
+
+  // 3. Parallax handling over radar
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (prefersReducedMotion || !radarRef.current) return;
+      const rect = radarRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      setParallax({ x: x * 6, y: y * 6 }); // 2-4px max offset per ring
+    },
+    [prefersReducedMotion]
+  );
+
+  const handleMouseLeaveRadar = useCallback(() => {
+    setParallax({ x: 0, y: 0 });
+    setHoveredCategory(null);
+  }, []);
+
+  // Build aria summary for accessibility (Phase 2 requirement)
+  const ariaLabel = useMemo(() => {
+    const catSummaries = categories.map((c) => `${c.label}: ${c.score} percent`).join(', ');
+    return `Resume Health Radar: Overall score ${currentOverallScore} out of 100. Category breakdown: ${catSummaries}.`;
+  }, [categories, currentOverallScore]);
+
+  // Radar geometry: center at (170, 170), viewBox="0 0 340 340"
+  const radarDimensions = useMemo(() => {
+    const count = categories.length; // 6
+    return categories.map((cat, idx) => {
+      const ringIndex = count - 1 - idx;
+      const geo = calculateRingGeometry(cat.score, ringIndex, count, 72, 12);
+      const staggerDelay = idx * RING_STAGGER_MS;
+
+      const angleDeg = (Math.max(0, Math.min(100, cat.score)) / 100) * 360;
+      const rad = ((angleDeg - 90) * Math.PI) / 180;
+      const tipX = 170 + geo.radius * Math.cos(rad);
+      const tipY = 170 + geo.radius * Math.sin(rad);
+
+      return {
+        cat,
+        geo,
+        staggerDelay,
+        tipX,
+        tipY,
+        ringIndex,
+      };
+    });
+  }, [categories]);
+
+  // Overall outer track potential arc (Phase 4a)
+  const potentialRing = useMemo(() => {
+    const radius = 146; // Outer ghost track
+    const circumference = 2 * Math.PI * radius;
+    const strokeLength = (potential.potentialScore / 100) * circumference;
+    const baseLength = (currentOverallScore / 100) * circumference;
+    return {
+      radius,
+      circumference,
+      strokeLength,
+      baseLength,
+      dashOffset: circumference - strokeLength,
+      gainDashOffset: circumference - (strokeLength - baseLength),
+    };
+  }, [potential.potentialScore, currentOverallScore]);
 
   return (
     <div
-      className="card-dark"
+      ref={containerRef}
+      className="card-dark resume-health-core"
       style={{
-        background: '#0B0B0B',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '20px',
-        padding: '32px',
-        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.55)',
         position: 'relative',
         overflow: 'hidden',
+        borderRadius: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        backgroundColor: '#0B0B0B',
+        padding: '24px',
+        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.65)',
+        transition: 'all 0.3s ease',
       }}
     >
-      {/* Background ambient lighting */}
+      {/* Idle slow breathing glow behind radar (Phase 2 requirement: opacity 0.5 to 0.8, 6s loop) */}
       <div
+        aria-hidden="true"
         style={{
-          position: 'absolute',
-          top: '-80px',
-          right: '-80px',
-          width: '280px',
-          height: '280px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(229, 9, 32, 0.12) 0%, transparent 70%)',
           pointerEvents: 'none',
-          filter: 'blur(40px)',
+          position: 'absolute',
+          top: '-60px',
+          left: '-60px',
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
+          filter: 'blur(60px)',
+          background: 'radial-gradient(circle, rgba(229, 9, 32, 0.18) 0%, rgba(16, 185, 129, 0.08) 50%, transparent 70%)',
+          opacity: isIdleActive && !prefersReducedMotion ? (sheenActive ? 0.95 : 0.65) : 0.4,
+          animation: isIdleActive && !prefersReducedMotion ? 'breatheGlow 6s ease-in-out infinite alternate' : 'none',
+          transition: 'opacity 1s ease',
         }}
       />
 
-      {/* Header Info */}
+      {/* Top Header & Methodology Link */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '28px',
           flexWrap: 'wrap',
-          gap: '12px',
+          gap: '14px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+          paddingBottom: '16px',
+          marginBottom: '24px',
         }}
       >
         <div>
@@ -174,23 +263,33 @@ export const ResumeHealthCore: React.FC<ResumeHealthCoreProps> = ({
                 width: '7px',
                 height: '7px',
                 borderRadius: '50%',
-                background: '#E50920',
+                backgroundColor: '#E50920',
                 boxShadow: '0 0 8px #E50920',
+                display: 'inline-block',
               }}
             />
-            <span
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888888' }}>
+              Diagnostic Score Engine
+            </span>
+            <span style={{ color: '#444444' }}>&bull;</span>
+            <button
+              type="button"
+              onClick={onOpenScoreExplanation}
               style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
                 fontSize: '0.72rem',
-                fontWeight: 700,
-                color: '#8E8E8E',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
+                fontWeight: 600,
+                color: '#999999',
+                textDecoration: 'underline',
+                cursor: 'pointer',
               }}
             >
-              Resume Intelligence Core
-            </span>
+              {rubricVersion}
+            </button>
           </div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em' }}>
+          <h2 style={{ fontSize: '1.28rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#FFFFFF', margin: 0 }}>
             Resume Health & Diagnostic Radar
           </h2>
         </div>
@@ -201,9 +300,21 @@ export const ResumeHealthCore: React.FC<ResumeHealthCoreProps> = ({
               type="button"
               onClick={onOpenScoreExplanation}
               className="btn btn-secondary-dark"
-              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                borderRadius: '8px',
+                border: '1px solid #282828',
+                background: '#151515',
+                color: '#C0C0C0',
+                cursor: 'pointer',
+              }}
             >
-              <HelpCircle size={14} />
+              <HelpCircle size={13} />
               <span>Score Methodology</span>
             </button>
           )}
@@ -212,239 +323,605 @@ export const ResumeHealthCore: React.FC<ResumeHealthCoreProps> = ({
             type="button"
             onClick={() => onNavigateTab('optimizer')}
             className="btn btn-red"
-            style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 700 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              borderRadius: '8px',
+              boxShadow: '0 4px 14px rgba(229, 9, 32, 0.35)',
+              cursor: 'pointer',
+            }}
           >
-            <span>Launch Resume Optimizer</span>
-            <ArrowRight size={14} />
+            <span>Launch Optimizer</span>
+            <ArrowRight size={13} />
           </button>
         </div>
       </div>
 
-      {/* Core Center Display Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(320px, 1fr) minmax(280px, 1fr)',
-          gap: '36px',
-          alignItems: 'center',
-        }}
-        className="health-core-grid"
-      >
-        {/* Left: Concentric Multi-Ring Radial Visualization */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="300" height="300" viewBox="0 0 300 300" style={{ transform: 'rotate(-90deg)' }}>
-            {/* Background base tracks */}
-            {dimensions.map((dim, idx) => {
-              const radius = 55 + idx * 13;
-              return (
-                <circle
-                  key={`bg-${dim.id}`}
-                  cx="150"
-                  cy="150"
-                  r={radius}
-                  fill="transparent"
-                  stroke="rgba(255, 255, 255, 0.04)"
-                  strokeWidth="6"
-                />
-              );
-            })}
+      {/* Main Grid: Left Radar & Legend | Right Bars & Details (Stacks below 900px) */}
+      <div className="radar-content-grid">
+        {/* LEFT COLUMN: Radial Radar + Center Score + Label Above + Pill Below + Legend */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Label ABOVE Radar (Phase 1 requirement: center has strictly score, label moves above) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9E9E9E' }}>
+              Resume Health Radar
+            </span>
+            {potential.potentialGain > 0 && (
+              <span
+                style={{
+                  borderRadius: '9999px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  padding: '2px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  color: '#10B981',
+                }}
+              >
+                +{potential.potentialGain} pts potential
+              </span>
+            )}
+          </div>
 
-            {/* Active Data-driven Segment Arcs */}
-            {dimensions.map((dim, idx) => {
-              const radius = 55 + idx * 13;
-              const circumference = 2 * Math.PI * radius;
-              const strokeLength = (dim.score / 100) * circumference;
-              const isSelected = activeDimension?.id === dim.id;
-
-              return (
-                <circle
-                  key={`val-${dim.id}`}
-                  cx="150"
-                  cy="150"
-                  r={radius}
-                  fill="transparent"
-                  stroke={dim.color}
-                  strokeWidth={isSelected ? '8' : '5.5'}
-                  strokeDasharray={`${strokeLength} ${circumference}`}
-                  strokeLinecap="round"
-                  style={{
-                    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                    cursor: 'pointer',
-                    opacity: activeDimension && !isSelected ? 0.35 : 0.95,
-                    filter: isSelected ? `drop-shadow(0 0 8px ${dim.color})` : 'none',
-                  }}
-                  onMouseEnter={() => setActiveDimension(dim)}
-                  onMouseLeave={() => setActiveDimension(null)}
-                  onClick={() => onNavigateTab(dim.targetTab)}
-                />
-              );
-            })}
-          </svg>
-
-          {/* Central Score Card */}
+          {/* SVG Radar Container with subtle Parallax */}
           <div
             style={{
-              position: 'absolute',
-              inset: 0,
+              position: 'relative',
+              width: '100%',
+              maxWidth: '340px',
+              aspectRatio: '1 / 1',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              textAlign: 'center',
-              pointerEvents: 'none',
             }}
           >
-            <span
-              style={{
-                fontSize: '0.66rem',
-                fontWeight: 800,
-                color: '#8E8E8E',
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Resume Health
-            </span>
+            {/* Soft sheen sweep overlay (Phase 2 requirement) */}
             <div
+              aria-hidden="true"
               style={{
-                fontSize: '3.4rem',
-                fontWeight: 900,
-                color: '#FFFFFF',
-                lineHeight: 1,
-                letterSpacing: '-0.04em',
-                marginTop: '2px',
+                pointerEvents: 'none',
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, transparent 20%, rgba(255, 255, 255, 0.15) 50%, transparent 80%)',
+                maskImage: 'radial-gradient(circle, black 65%, transparent 72%)',
+                WebkitMaskImage: 'radial-gradient(circle, black 65%, transparent 72%)',
+                opacity: sheenActive ? 1 : 0,
+                transition: 'opacity 0.7s ease',
               }}
-            >
-              {displayScore}
-            </div>
-            <span
-              style={{
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                color: verdict.color,
-                background: `${verdict.color}15`,
-                border: `1px solid ${verdict.color}35`,
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                marginTop: '6px',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {verdict.label}
-            </span>
-          </div>
-        </div>
+            />
 
-        {/* Right: Dimension Details & Interactive Breakdown */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Active Highlight Card */}
-          <div
-            style={{
-              background: '#121212',
-              border: `1px solid ${currentView.color}45`,
-              borderRadius: '14px',
-              padding: '16px 20px',
-              transition: 'all 0.25s ease',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span
+            <svg
+              ref={radarRef}
+              role="img"
+              aria-label={ariaLabel}
+              viewBox="0 0 340 340"
+              style={{
+                width: '100%',
+                height: '100%',
+                userSelect: 'none',
+                transform: `perspective(600px) rotateX(${parallax.y * -0.5}deg) rotateY(${parallax.x * 0.5}deg)`,
+                transition: 'transform 0.15s ease-out',
+              }}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeaveRadar}
+            >
+              <defs>
+                {/* Glow Filter for active hover ring */}
+                <filter id="radar-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3.5" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="tip-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="glow" />
+                  <feMerge>
+                    <feMergeNode in="glow" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Faint gauge tick marks on outer track, rotating slowly 60s per turn (Phase 2 requirement) */}
+              <g
+                style={{
+                  transformOrigin: '170px 170px',
+                  animation: isIdleActive && !prefersReducedMotion ? 'rotateTicks 60s linear infinite' : 'none',
+                  opacity: isIdleActive ? 0.35 : 0.15,
+                  transition: 'opacity 0.5s ease',
+                }}
+              >
+                {Array.from({ length: 48 }).map((_, tIdx) => {
+                  const angle = (tIdx / 48) * 360;
+                  const rad = (angle * Math.PI) / 180;
+                  const x1 = 170 + 154 * Math.cos(rad);
+                  const y1 = 170 + 154 * Math.sin(rad);
+                  const x2 = 170 + 158 * Math.cos(rad);
+                  const y2 = 170 + 158 * Math.sin(rad);
+                  return (
+                    <line
+                      key={`tick-${tIdx}`}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke="rgba(255, 255, 255, 0.4)"
+                      strokeWidth={tIdx % 4 === 0 ? '1.5' : '0.8'}
+                    />
+                  );
+                })}
+              </g>
+
+              {/* Outer Ghost Arc for Potential Score (Phase 4a requirement) */}
+              <circle
+                cx="170"
+                cy="170"
+                r={potentialRing.radius}
+                fill="none"
+                stroke="rgba(16, 185, 129, 0.18)"
+                strokeWidth="2"
+                strokeDasharray="4 4"
+                transform="rotate(-90 170 170)"
+              />
+              {potential.potentialGain > 0 && (
+                <circle
+                  cx="170"
+                  cy="170"
+                  r={potentialRing.radius}
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="2.5"
+                  strokeDasharray={`${potentialRing.strokeLength} ${potentialRing.circumference}`}
+                  strokeDashoffset={hasLoaded ? 0 : potentialRing.circumference}
+                  strokeLinecap="round"
+                  transform="rotate(-90 170 170)"
                   style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    background: currentView.color,
-                    boxShadow: `0 0 8px ${currentView.color}`,
+                    transition: prefersReducedMotion ? 'none' : 'stroke-dashoffset 1.4s cubic-bezier(0.22, 1, 0.36, 1)',
+                    opacity: 0.65,
                   }}
                 />
-                <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#FFFFFF' }}>
-                  {currentView.name}
-                </span>
-                <span
+              )}
+
+              {/* Background Concentric Circular Base Tracks */}
+              {radarDimensions.map(({ cat, geo, ringIndex }) => (
+                <circle
+                  key={`bg-track-${cat.id}`}
+                  cx="170"
+                  cy="170"
+                  r={geo.radius}
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.05)"
+                  strokeWidth="4"
                   style={{
-                    fontSize: '0.68rem',
-                    color: '#8E8E8E',
-                    background: '#1A1A1A',
-                    padding: '1px 6px',
-                    borderRadius: '4px',
+                    transform: `translate(${parallax.x * (ringIndex * 0.4)}px, ${parallax.y * (ringIndex * 0.4)}px)`,
+                    transition: 'transform 0.15s ease-out',
+                  }}
+                />
+              ))}
+
+              {/* Data-Driven Concentric Rings Sweeping 0 -> Value (Phase 2 Load Sequence) */}
+              {radarDimensions.map(({ cat, geo, staggerDelay, tipX, tipY, ringIndex }) => {
+                const isHovered = hoveredCategory?.id === cat.id;
+                const isDimmed = hoveredCategory !== null && !isHovered;
+                const ringStrokeWidth = isHovered ? 7.5 : 4.5;
+
+                // Parallax per-layer offset (Phase 3 requirement: 2-4px depth)
+                const layerOffset = {
+                  x: parallax.x * (ringIndex * 0.4),
+                  y: parallax.y * (ringIndex * 0.4),
+                };
+
+                return (
+                  <g
+                    key={`ring-group-${cat.id}`}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`${cat.label}: ${cat.score}%. Click to view details.`}
+                    style={{
+                      cursor: 'pointer',
+                      outline: 'none',
+                      transform: `translate(${layerOffset.x}px, ${layerOffset.y}px)`,
+                      transition: 'transform 0.15s ease-out, opacity 0.25s ease',
+                      opacity: isDimmed ? 0.35 : 1,
+                    }}
+                    onMouseEnter={() => setHoveredCategory(cat)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    onFocus={() => setHoveredCategory(cat)}
+                    onBlur={() => setHoveredCategory(null)}
+                    onClick={() => onNavigateTab(cat.targetTab)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onNavigateTab(cat.targetTab);
+                      }
+                    }}
+                  >
+                    {/* Active Ring Stroke */}
+                    <circle
+                      cx="170"
+                      cy="170"
+                      r={geo.radius}
+                      fill="none"
+                      stroke={cat.color}
+                      strokeWidth={ringStrokeWidth}
+                      strokeLinecap="round"
+                      strokeDasharray={geo.strokeDasharray}
+                      strokeDashoffset={
+                        hasLoaded || prefersReducedMotion ? geo.strokeDashoffset : geo.circumference
+                      }
+                      transform="rotate(-90 170 170)"
+                      filter={isHovered ? 'url(#radar-glow)' : 'none'}
+                      style={{
+                        transition: prefersReducedMotion
+                          ? 'stroke-width 0.2s ease'
+                          : `stroke-dashoffset ${RING_MS}ms cubic-bezier(0.22, 1, 0.36, 1) ${staggerDelay}ms, stroke-width 0.2s ease`,
+                      }}
+                    />
+
+                    {/* Glowing End-Cap Dot Riding Stroke Tip (Phase 2 requirement) */}
+                    {(hasLoaded || prefersReducedMotion) && cat.score > 2 && (
+                      <circle
+                        cx={tipX}
+                        cy={tipY}
+                        r={isHovered ? 4.5 : 3.2}
+                        fill="#FFFFFF"
+                        stroke={cat.color}
+                        strokeWidth="2"
+                        filter="url(#tip-glow)"
+                        style={{
+                          pointerEvents: 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* CENTER OF RADAR: ONLY Score Number & "/100" (Phase 1 requirement: nothing overlaps a ring line) */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '136px',
+                height: '136px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+                textAlign: 'center',
+                transition: 'opacity 0.15s ease',
+              }}
+            >
+              {/* Category label crossfade on hover */}
+              <span
+                style={{
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: hoveredCategory ? hoveredCategory.color : '#8E8E8E',
+                  transition: 'color 0.15s ease',
+                  marginBottom: '2px',
+                }}
+              >
+                {centerLabel}
+              </span>
+
+              {/* Large Score Number with tabular-nums so it doesn't jitter */}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', lineHeight: 1 }}>
+                <span
+                  className="radar-center-score"
+                  style={{
+                    fontSize: '2.8rem',
+                    fontWeight: 900,
+                    letterSpacing: '-0.03em',
+                    color: '#FFFFFF',
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {currentView.weight}% weight
+                  {centerValue}
+                </span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#888888', marginLeft: '2px' }}>
+                  /100
                 </span>
               </div>
 
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: currentView.color }}>
-                {currentView.score}%
+              {/* Weight indicator or subtle status */}
+              <span style={{ marginTop: '4px', fontSize: '0.66rem', fontWeight: 600, color: '#666666' }}>
+                {hoveredCategory ? `${hoveredCategory.weight}% wt` : `${categories.length} dimensions`}
               </span>
             </div>
 
-            <p style={{ fontSize: '0.8rem', color: '#B0B0B0', lineHeight: 1.5, margin: '0 0 10px' }}>
-              {currentView.description}
+            {/* Floating Delta Badge when score changes (Phase 2 requirement) */}
+            {scoreDelta !== null && (
+              <div
+                aria-hidden="true"
+                style={{
+                  pointerEvents: 'none',
+                  position: 'absolute',
+                  top: '24px',
+                  right: '24px',
+                  zIndex: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  borderRadius: '9999px',
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 900,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                  background: scoreDelta >= 0 ? '#10B981' : '#E50920',
+                  color: '#FFFFFF',
+                }}
+              >
+                <span>{scoreDelta >= 0 ? `+${scoreDelta}` : scoreDelta}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Pill BELOW Radar (Phase 1 requirement: "GOOD FOUNDATION" pill moved below) */}
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                borderRadius: '9999px',
+                padding: '4px 14px',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: centerBand.color,
+                backgroundColor: centerBand.bgColor,
+                border: `1px solid ${centerBand.borderColor}`,
+                opacity: bandPillVisible || prefersReducedMotion ? 1 : 0,
+                transform: bandPillVisible || prefersReducedMotion ? 'translateY(0)' : 'translateY(6px)',
+                transition: 'all 0.5s ease',
+              }}
+            >
+              {centerBand.label}
+            </div>
+
+            {/* Linked Legend next to/under radar: dot + name + score (Phase 1 & 3 requirements) */}
+            <div
+              style={{
+                marginTop: '10px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px 12px',
+                maxWidth: '360px',
+              }}
+            >
+              {categories.map((cat) => {
+                const isHovered = hoveredCategory?.id === cat.id;
+                const isDimmed = hoveredCategory !== null && !isHovered;
+                return (
+                  <button
+                    key={`legend-${cat.id}`}
+                    type="button"
+                    tabIndex={0}
+                    onMouseEnter={() => setHoveredCategory(cat)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    onFocus={() => setHoveredCategory(cat)}
+                    onBlur={() => setHoveredCategory(null)}
+                    onClick={() => onNavigateTab(cat.targetTab)}
+                    className="radar-legend-item"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: isHovered ? 'rgba(255,255,255,0.08)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      opacity: isDimmed ? 0.35 : 1,
+                      transition: 'opacity 0.15s ease, background 0.15s ease',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: cat.color,
+                        boxShadow: isHovered ? `0 0 6px ${cat.color}` : 'none',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ color: isHovered ? '#FFFFFF' : '#B0B0B0', fontWeight: isHovered ? 700 : 500 }}>
+                      {cat.label}
+                    </span>
+                    <span style={{ color: '#888888', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                      {cat.score}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Bars + Category Breakdown with Weight & Hover Tooltip */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Active Highlight Card / Tooltip Info (Phase 3 requirement: weight + real reason) */}
+          <div
+            style={{
+              borderRadius: '12px',
+              border: `1px solid ${hoveredCategory ? `${hoveredCategory.color}60` : 'rgba(255, 255, 255, 0.08)'}`,
+              background: hoveredCategory ? 'rgba(24, 24, 24, 0.95)' : '#141414',
+              padding: '16px 18px',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    width: '9px',
+                    height: '9px',
+                    borderRadius: '50%',
+                    backgroundColor: (hoveredCategory || categories[0]).color,
+                    boxShadow: `0 0 8px ${(hoveredCategory || categories[0]).color}`,
+                  }}
+                />
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  {(hoveredCategory || categories[0]).label}
+                </span>
+                <span
+                  style={{
+                    borderRadius: '4px',
+                    backgroundColor: '#202020',
+                    padding: '2px 6px',
+                    fontSize: '0.68rem',
+                    fontWeight: 600,
+                    color: '#B0B0B0',
+                  }}
+                >
+                  {(hoveredCategory || categories[0]).weight}% weight
+                </span>
+              </div>
+
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ color: (hoveredCategory || categories[0]).color }}>
+                  {(hoveredCategory || categories[0]).score}%
+                </span>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.78rem', lineHeight: 1.5, color: '#A0A0A0' }}>
+              {(hoveredCategory || categories[0]).reason}
             </p>
 
             <button
               type="button"
-              onClick={() => onNavigateTab(currentView.targetTab)}
+              onClick={() => onNavigateTab((hoveredCategory || categories[0]).targetTab)}
               style={{
-                background: 'none',
-                border: 'none',
-                color: currentView.color,
-                fontSize: '0.76rem',
-                fontWeight: 700,
+                marginTop: '10px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '6px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: (hoveredCategory || categories[0]).color,
+                background: 'transparent',
+                border: 'none',
                 cursor: 'pointer',
                 padding: 0,
               }}
             >
-              <span>Drill into {currentView.name}</span>
+              <span>Drill into {(hoveredCategory || categories[0]).label}</span>
               <ArrowRight size={12} />
             </button>
           </div>
 
-          {/* Mini Dimension Bars List */}
+          {/* Category Bars List: linked to radar (fills in sync, 60ms stagger) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {dimensions.map((dim) => {
-              const isSelected = activeDimension?.id === dim.id;
+            {categories.map((cat, bIdx) => {
+              const isHovered = hoveredCategory?.id === cat.id;
+              const isDimmed = hoveredCategory !== null && !isHovered;
+              const fillStaggerDelay = bIdx * 60;
+
               return (
                 <div
-                  key={dim.id}
-                  onClick={() => onNavigateTab(dim.targetTab)}
-                  onMouseEnter={() => setActiveDimension(dim)}
-                  onMouseLeave={() => setActiveDimension(null)}
+                  key={`bar-${cat.id}`}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${cat.label} ${cat.score} percent`}
+                  onMouseEnter={() => setHoveredCategory(cat)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                  onFocus={() => setHoveredCategory(cat)}
+                  onBlur={() => setHoveredCategory(null)}
+                  onClick={() => onNavigateTab(cat.targetTab)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onNavigateTab(cat.targetTab);
+                    }
+                  }}
+                  className="category-bar-row"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '130px 1fr 40px',
+                    gridTemplateColumns: '150px 1fr 48px',
                     alignItems: 'center',
                     gap: '12px',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    background: isSelected ? 'rgba(255, 255, 255, 0.04)' : 'transparent',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
                     cursor: 'pointer',
-                    transition: 'background 0.15s ease',
+                    backgroundColor: isHovered ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+                    opacity: isDimmed ? 0.35 : 1,
+                    transition: 'all 0.15s ease',
+                    outline: 'none',
                   }}
                 >
-                  <span style={{ fontSize: '0.78rem', color: isSelected ? '#FFFFFF' : '#9E9E9E', fontWeight: 600 }}>
-                    {dim.name}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <span
+                      style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        backgroundColor: cat.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: isHovered ? 700 : 500,
+                        color: isHovered ? '#FFFFFF' : '#CCCCCC',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {cat.label}
+                    </span>
+                  </div>
 
-                  {/* Progress Bar */}
-                  <div style={{ width: '100%', height: '5px', background: '#1A1A1A', borderRadius: '3px', overflow: 'hidden' }}>
+                  {/* Horizontal Bar with fill animation in sync */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      height: '8px',
+                      width: '100%',
+                      overflow: 'hidden',
+                      borderRadius: '9999px',
+                      backgroundColor: '#161616',
+                    }}
+                  >
                     <div
                       style={{
-                        width: `${dim.score}%`,
                         height: '100%',
-                        background: dim.color,
-                        borderRadius: '3px',
-                        transition: 'width 0.8s ease',
+                        borderRadius: '9999px',
+                        width: hasLoaded || prefersReducedMotion ? `${cat.score}%` : '0%',
+                        backgroundColor: cat.color,
+                        boxShadow: isHovered ? `0 0 10px ${cat.color}` : 'none',
+                        transition: prefersReducedMotion ? 'none' : 'width 0.7s cubic-bezier(0.22, 1, 0.36, 1)',
+                        transitionDelay: prefersReducedMotion ? '0ms' : `${fillStaggerDelay}ms`,
                       }}
                     />
                   </div>
 
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#FFFFFF', textAlign: 'right' }}>
-                    {dim.score}
+                  <span
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: '#E0E0E0',
+                      textAlign: 'right',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {cat.score}%
                   </span>
                 </div>
               );
@@ -452,6 +929,31 @@ export const ResumeHealthCore: React.FC<ResumeHealthCoreProps> = ({
           </div>
         </div>
       </div>
+
+      <style>{`
+        .radar-content-grid {
+          display: grid;
+          grid-template-columns: minmax(320px, 1fr) minmax(320px, 1.1fr);
+          align-items: center;
+          gap: 36px;
+        }
+
+        @media (max-width: 900px) {
+          .radar-content-grid {
+            grid-template-columns: 1fr;
+            gap: 28px;
+          }
+        }
+
+        @keyframes breatheGlow {
+          0% { transform: scale(0.95); opacity: 0.5; }
+          100% { transform: scale(1.05); opacity: 0.8; }
+        }
+        @keyframes rotateTicks {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

@@ -162,6 +162,9 @@ export function generateActionableRecommendations(params: {
 
   const criticalIssues = deduplicateStrings([
     ...(museResult?.criticalIssues || []),
+    ...(structuredResume.education.length === 0 ? ['Missing required Education section'] : []),
+    ...(structuredResume.experience.length === 0 ? ['Missing required Work Experience section'] : []),
+    ...(params.overallScore < 55 ? ['Critically low ATS score: Significant structural and keyword deficiencies'] : []),
     ...readabilityResult.deductions.filter((d) => /missing|critical|empty|zero/i.test(d)),
     ...experienceResult.deductions.filter((d) => /missing|critical/i.test(d)),
   ]).slice(0, 8);

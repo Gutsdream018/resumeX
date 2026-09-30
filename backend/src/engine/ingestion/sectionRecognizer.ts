@@ -56,7 +56,7 @@ const SECTION_PATTERNS: Array<{ key: RecognizedSectionKey; regex: RegExp; priori
   {
     key: 'education',
     regex:
-      /^(?:educational\s+qualifications?|academic\s+background|academic\s+qualifications?|educational\s+background|education\s+&\s+credentials|education|academics)\b/i,
+      /^(?:educational\s+qualifications?|academic\s+background|academic\s+qualifications?|educational\s+background|education\s+&\s+credentials|education\s*(?:&|and)\s*(?:licensure|certifications?|credentials)|education|academics)\b/i,
     priority: 9,
   },
   {
@@ -99,7 +99,7 @@ const SECTION_PATTERNS: Array<{ key: RecognizedSectionKey; regex: RegExp; priori
  */
 function normalizeInlineHeadings(text: string): string {
   const inlineHeaderRegex =
-    /(?:^|\s|\.|\b)(EDUCATIONAL\s+QUALIFICATIONS?|TECHNICAL\s+CERTIFICATIONS?|CO-?CURRICULAR\s+ACTIVITIES|EXTRA-?CURRICULAR\s+ACTIVITIES|SUMMER\s+INTERNSHIP\s+PROGRAM|WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|TECHNICAL\s+SKILLS|CAREER\s+OBJECTIVE|PROFESSIONAL\s+SUMMARY|PROJECTS|CERTIFICATIONS|EDUCATION|SKILLS)\s*[:\-e]?\s*/gi;
+    /(?:^|\s|\.|\b)(EDUCATIONAL\s+QUALIFICATIONS?|TECHNICAL\s+CERTIFICATIONS?|CO-?CURRICULAR\s+ACTIVITIES|EXTRA-?CURRICULAR\s+ACTIVITIES|SUMMER\s+INTERNSHIP\s+PROGRAM|WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|TECHNICAL\s+SKILLS|CAREER\s+OBJECTIVE|PROFESSIONAL\s+SUMMARY|PROJECTS|CERTIFICATIONS|EDUCATION\s*(?:&|AND)\s*(?:LICENSURE|CERTIFICATIONS?)|EDUCATION|SKILLS)\s*[:\-e]?\s*/gi;
 
   return text.replace(inlineHeaderRegex, (match, header) => `\n\n${header.trim().toUpperCase()}\n`);
 }

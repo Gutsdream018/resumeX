@@ -3,6 +3,8 @@ import { upload } from '../middleware/upload.middleware.js';
 import { analyzeResume } from '../controllers/resume.controller.js';
 import { SAMPLE_RESUMES } from '../../routes/analyze.js';
 
+import { scoreSnapshotDb } from '../../services/scoring/scoreSnapshotDb.js';
+
 export const analysisRouter = Router();
 
 // Backwards-compatible POST /api/analyze
@@ -25,4 +27,20 @@ analysisRouter.get('/sample-resumes/:id', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Sample resume not found.' });
   }
   return res.json({ success: true, sample });
+});
+
+// Score History Snapshots (Phase 4c)
+analysisRouter.post('/score-history/snapshot', (req: Request, res: Response) => {
+  const { userId, resumeId, score, categoryScores } = req.body;
+  if (!resumeId || typeof score !== 'number') {
+    return res.status(400).json({ error: 'Missing resumeId or valid score' });
+  }
+  const result = scoreSnapshotDb.saveSnapshot(userId, resumeId, score, categoryScores);
+  return res.json({ success: true, ...result });
+});
+
+analysisRouter.get('/score-history/:resumeId', (req: Request, res: Response) => {
+  const { resumeId } = req.params;
+  const result = scoreSnapshotDb.getSnapshots(resumeId);
+  return res.json({ success: true, ...result });
 });

@@ -7,14 +7,25 @@ import { ResumeCompareModal } from './ResumeCompareModal';
 import { VersionHistoryModal, VersionSnapshot } from './VersionHistoryModal';
 import { AtsCheckModal } from './AtsCheckModal';
 import { ResumeExportModal } from './ResumeExportModal';
-import { rescoreResumeApi } from '../../services/api';
+import { rescoreResumeApi, saveTailoredResumeApi, createApplicationApi, trackJobClickApi } from '../../services/api';
+import { ExternalLink, BookmarkCheck, Check, Send, Sparkles as SparklesIcon } from 'lucide-react';
+import { ScoredJobMatch } from '../../types';
+import { ApplyKitModal } from '../jobs/ApplyKitModal';
+import { AppliedPromptModal } from '../jobs/AppliedPromptModal';
+import { FullOptimizationModal } from './FullOptimizationModal';
+import { OptimizedBullet } from '../../types';
 
 interface ResumeOptimizerPageProps {
   analysis: ResumeAnalysisResult;
   onNavigateTab?: (tab: string) => void;
+  tailoredJob?: ScoredJobMatch | null;
 }
 
-export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analysis, onNavigateTab }) => {
+export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({
+  analysis,
+  onNavigateTab,
+  tailoredJob,
+}) => {
   // 1. Establish Baseline Canonical Resume
   const initialResume: CanonicalResume = useMemo(() => {
     if (analysis.canonicalResume) return JSON.parse(JSON.stringify(analysis.canonicalResume));
@@ -89,6 +100,48 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
     baseVersion: null,
   });
   const [qualityReport, setQualityReport] = useState<ExportQualityReport | undefined>(undefined);
+  const [isApplyKitOpen, setIsApplyKitOpen] = useState<boolean>(false);
+  const [showAppliedPrompt, setShowAppliedPrompt] = useState<boolean>(false);
+  const [lastApplyClickTime, setLastApplyClickTime] = useState<number | null>(null);
+
+  // Full Resume Optimization Modal State
+  const [isFullOptimizeModalOpen, setIsFullOptimizeModalOpen] = useState<boolean>(false);
+  const [fullOptimizeInitialMode, setFullOptimizeInitialMode] = useState<'ats_general' | 'tailored'>('ats_general');
+
+  // Tab return listener (visibilitychange) for "Did you apply?" prompt
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && lastApplyClickTime) {
+        const elapsed = Date.now() - lastApplyClickTime;
+        if (elapsed > 3000) {
+          setShowAppliedPrompt(true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [lastApplyClickTime]);
+
+  const handleConfirmApplied = async () => {
+    if (!tailoredJob) return;
+    try {
+      await createApplicationApi({
+        userId: 'anonymous_user',
+        resumeId: analysis.id || analysis.fileName || 'default-resume',
+        jobId: tailoredJob.job.id,
+        jobTitle: tailoredJob.job.title,
+        company: tailoredJob.job.company,
+        location: tailoredJob.job.location,
+        applyUrl: tailoredJob.job.finalUrl || tailoredJob.job.applyUrl,
+        status: 'applied',
+      });
+    } catch (err) {
+      console.error('Failed to set applied status:', err);
+    } finally {
+      setShowAppliedPrompt(false);
+      setLastApplyClickTime(null);
+    }
+  };
 
   // History Stack (Undo / Redo)
   const [undoStack, setUndoStack] = useState<CanonicalResume[]>([]);
@@ -109,6 +162,52 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
 
   // Applied revisions tracker
   const [appliedRevisions, setAppliedRevisions] = useState<Set<string>>(new Set());
+
+  const handleOpenFullOptimize = (mode: 'ats_general' | 'tailored') => {
+    setFullOptimizeInitialMode(mode);
+    setIsFullOptimizeModalOpen(true);
+  };
+
+  const handleApplyFullOptimization = (
+    newResume: CanonicalResume,
+    appliedBullets: OptimizedBullet[],
+    delta: number
+  ) => {
+    // 1. Push current resume to undo stack
+    setUndoStack((prev) => [...prev, JSON.parse(JSON.stringify(currentResume))]);
+    setRedoStack([]);
+
+    // 2. Update current working resume
+    setCurrentResume(newResume);
+    setHasUnsavedChanges(true);
+
+    // 3. Update scores
+    const newScore = Math.min(99, Math.max(baselineScore, currentScore + delta));
+    setCurrentScore(newScore);
+
+    // 4. Record new version snapshot
+    const versionId = `v-opt-${Date.now()}`;
+    const newSnapshot: VersionSnapshot = {
+      id: versionId,
+      label: fullOptimizeInitialMode === 'tailored' ? 'Full Optimization (Tailored)' : 'Full Optimization (General ATS)',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      resume: JSON.parse(JSON.stringify(newResume)),
+      atsScore: newScore,
+      isOriginal: false,
+    };
+    setVersionHistory((prev) => [...prev, newSnapshot]);
+    setCurrentVersionId(versionId);
+
+    // 5. Mark applied revisions
+    setAppliedRevisions((prev) => {
+      const next = new Set(prev);
+      appliedBullets.forEach((b) => {
+        next.add(b.id);
+        if (b.section === 'summary') next.add('summary');
+      });
+      return next;
+    });
+  };
 
   // Helper to restructure mashed text into clean canonical resume sections
   const autoRestructureMashedResume = useCallback((resumeToFix: CanonicalResume): CanonicalResume => {
@@ -485,6 +584,39 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
     setVersionHistory((prev) => [...prev, savedCheckpoint]);
     setCurrentVersionId(savedCheckpoint.id);
     setHasUnsavedChanges(false);
+
+    // If tailoring for a specific job, persist variant
+    if (tailoredJob) {
+      handleSaveTailoredVariant();
+    }
+  };
+
+  const [isTailoredSaved, setIsTailoredSaved] = useState<boolean>(false);
+  const [isSavingTailored, setIsSavingTailored] = useState<boolean>(false);
+
+  const handleSaveTailoredVariant = async () => {
+    if (!tailoredJob) return;
+    setIsSavingTailored(true);
+    try {
+      const originalResumeId = analysis.id || analysis.fileName || 'default-resume';
+      const targetReqs = [
+        ...(tailoredJob.missingRequirements?.mustHave || []),
+        ...(tailoredJob.missingRequirements?.niceToHave || []),
+      ];
+      await saveTailoredResumeApi({
+        originalResumeId,
+        jobId: tailoredJob.job.id,
+        jobTitle: tailoredJob.job.title,
+        company: tailoredJob.job.company,
+        content: currentResume,
+        targetRequirements: targetReqs,
+      });
+      setIsTailoredSaved(true);
+    } catch (err) {
+      console.error('Failed to save tailored resume variant:', err);
+    } finally {
+      setIsSavingTailored(false);
+    }
   };
 
   // 6. Apply Recommendation from Drawer
@@ -633,6 +765,9 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
         templatePreset={templatePreset}
         pendingImprovementsCount={recommendations.filter((r) => !r.applied).length}
         isDrawerOpen={isDrawerOpen}
+        hasTargetJob={Boolean(tailoredJob)}
+        targetJobTitle={tailoredJob?.job?.title}
+        onOpenFullOptimize={handleOpenFullOptimize}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onDocThemeChange={(t) => setDocTheme(t)}
@@ -644,6 +779,118 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
         onToggleDrawer={() => setIsDrawerOpen(!isDrawerOpen)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
       />
+
+      {/* Tailored Job Variant Banner */}
+      {tailoredJob && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(227, 27, 43, 0.15), rgba(13, 13, 13, 0.95))',
+            borderBottom: '1px solid rgba(227, 27, 43, 0.35)',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '14px',
+            zIndex: 40,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#E31B2B' }} />
+            <span style={{ fontSize: '0.84rem', color: '#FFFFFF', fontWeight: 600 }}>
+              Tailoring for: <strong style={{ color: '#FF6B75' }}>{tailoredJob.job.title}</strong> at {tailoredJob.job.company}
+            </span>
+            {tailoredJob.missingRequirements && (
+              <span
+                style={{
+                  fontSize: '0.74rem',
+                  color: '#A0A0A0',
+                  background: '#161616',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid #282828',
+                }}
+              >
+                {tailoredJob.missingRequirements.mustHave?.length || 0} missing target keywords
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={() => setIsApplyKitOpen(true)}
+              className="btn btn-red"
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <SparklesIcon size={14} />
+              <span>Apply Kit (PDF/DOCX & Letter)</span>
+            </button>
+
+            {isTailoredSaved ? (
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  color: '#10B981',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Check size={14} /> Saved
+              </span>
+            ) : (
+              <button
+                onClick={handleSaveTailoredVariant}
+                disabled={isSavingTailored}
+                className="btn btn-secondary-dark"
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <BookmarkCheck size={14} />
+                <span>{isSavingTailored ? 'Saving...' : 'Save Variant'}</span>
+              </button>
+            )}
+
+            <a
+              href={tailoredJob.job.finalUrl || tailoredJob.job.applyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                trackJobClickApi(tailoredJob.job.id);
+                setLastApplyClickTime(Date.now());
+              }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                color: '#B0B0B0',
+                textDecoration: 'none',
+                background: '#161616',
+                border: '1px solid #282828',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <span>{tailoredJob.job.isAts ? 'Apply on company site' : `Apply via ${tailoredJob.job.source || 'Board'}`}</span>
+              <ExternalLink size={12} />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* 2. Workspace Body: Center Resume Canvas + Right Collapsible AI Drawer */}
       <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 60px)', position: 'relative' }}>
@@ -694,6 +941,7 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
           }}
           onScrollToSection={handleScrollToSection}
           overallScore={currentScore}
+          onOpenFullOptimize={handleOpenFullOptimize}
         />
       </div>
 
@@ -747,6 +995,51 @@ export const ResumeOptimizerPage: React.FC<ResumeOptimizerPageProps> = ({ analys
         resume={currentResume}
         overallScore={currentScore}
         qualityReport={qualityReport}
+      />
+
+      {/* 7. Apply Kit Modal (Tailored Resume PDF/DOCX + Cover Letter) */}
+      {tailoredJob && (
+        <ApplyKitModal
+          isOpen={isApplyKitOpen}
+          onClose={() => setIsApplyKitOpen(false)}
+          match={tailoredJob}
+          tailoredResume={currentResume}
+          analysisText={analysis.rawText || analysis.text}
+          onAppliedClick={() => {
+            setLastApplyClickTime(Date.now());
+          }}
+        />
+      )}
+
+      {/* 8. Tab Return "Did you apply?" Prompt */}
+      {tailoredJob && (
+        <AppliedPromptModal
+          isOpen={showAppliedPrompt}
+          jobTitle={tailoredJob.job.title}
+          company={tailoredJob.job.company}
+          onYesApplied={handleConfirmApplied}
+          onNotYet={() => {
+            setShowAppliedPrompt(false);
+            setLastApplyClickTime(null);
+          }}
+        />
+      )}
+
+      {/* 9. One-Click Full Resume Optimization Modal */}
+      <FullOptimizationModal
+        isOpen={isFullOptimizeModalOpen}
+        onClose={() => setIsFullOptimizeModalOpen(false)}
+        canonicalResume={currentResume}
+        resumeId={analysis.id || analysis.fileName}
+        initialMode={fullOptimizeInitialMode}
+        targetJob={tailoredJob ? {
+          id: tailoredJob.job.id,
+          title: tailoredJob.job.title,
+          company: tailoredJob.job.company,
+          description: (tailoredJob.job as any).description,
+        } : null}
+        baselineScore={currentScore}
+        onApplyOptimizations={handleApplyFullOptimization}
       />
 
       <style>{`

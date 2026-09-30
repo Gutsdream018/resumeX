@@ -27,7 +27,8 @@ export const MatchScoreHeader: React.FC<MatchScoreHeaderProps> = ({ data }) => {
   };
 
   const scoreColor = getScoreColor(overallScore);
-  const strokeDashoffset = 440 - (440 * overallScore) / 100;
+  const circumference = 2 * Math.PI * 52; // ~326.73
+  const strokeDashoffset = circumference - (circumference * Math.max(0, Math.min(100, overallScore))) / 100;
   const atsScore = signals?.atsScoreComparison?.atsScore || 75;
 
   return (
@@ -39,35 +40,40 @@ export const MatchScoreHeader: React.FC<MatchScoreHeaderProps> = ({ data }) => {
       />
 
       <div className="flex flex-col lg:flex-row items-center gap-8 relative z-10">
-        {/* Radial Circular Gauge */}
-        <div className="relative flex-shrink-0 flex items-center justify-center">
-          <svg className="w-40 h-40 transform -rotate-90">
+        {/* Radial Circular Gauge (viewBox 0 0 120 120, r=52, aspect-ratio 1) */}
+        <div className="relative flex-shrink-0 flex items-center justify-center w-36 h-36 aspect-square">
+          <svg
+            viewBox="0 0 120 120"
+            role="img"
+            aria-label={`Job match score: ${overallScore}%`}
+            className="w-full h-full transform -rotate-90"
+          >
             <circle
-              cx="80"
-              cy="80"
-              r="70"
+              cx="60"
+              cy="60"
+              r="52"
               stroke="#1A1A1A"
-              strokeWidth="10"
+              strokeWidth="8"
               fill="transparent"
             />
             <circle
-              cx="80"
-              cy="80"
-              r="70"
+              cx="60"
+              cy="60"
+              r="52"
               stroke={scoreColor}
-              strokeWidth="10"
-              strokeDasharray="440"
+              strokeWidth="8"
+              strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
               fill="transparent"
               className="transition-all duration-1000 ease-out"
             />
           </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-4xl font-extrabold text-white tracking-tight">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+            <span className="text-3xl font-extrabold text-white tracking-tight tabular-nums">
               {overallScore}%
             </span>
-            <span className="text-[10px] font-mono tracking-widest text-[#9A9A9A] uppercase mt-0.5">
+            <span className="text-[10px] font-mono tracking-widest text-[#9A9A9A] uppercase mt-1">
               JOB MATCH
             </span>
           </div>

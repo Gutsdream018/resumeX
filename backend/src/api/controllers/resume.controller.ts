@@ -4,6 +4,7 @@ import { runDocumentIngestionPipeline } from '../../engine/ingestion/ingestionPi
 import { IngestionValidationError } from '../../engine/ingestion/fileValidator.js';
 import { processResumePipeline } from '../../services/recommendations/recommendationEngine.js';
 import { generateBulletImprovements } from '../../services/recommendations/improvementEngine.js';
+import { globalAnalysisCache } from '../../services/cacheService.js';
 
 export async function uploadResume(req: Request, res: Response, next: NextFunction) {
   try {
@@ -60,7 +61,7 @@ export async function analyzeResume(req: Request, res: Response, next: NextFunct
           code: 'RESUME_NOT_FOUND',
         });
       }
-      fileBuffer = stored.buffer;
+      fileBuffer = stored.buffer ?? null;
       mimetype = stored.mimetype;
       filename = stored.filename;
       if (stored.text) rawText = stored.text;
@@ -93,6 +94,12 @@ export async function analyzeResume(req: Request, res: Response, next: NextFunct
           });
         }
         throw err;
+      } finally {
+        // Immediate buffer release to prevent RAM bloat on low-cost/free tier
+        fileBuffer = null;
+        if (resumeId) {
+          resumeStorage.releaseBuffer(resumeId);
+        }
       }
     }
 
@@ -107,6 +114,17 @@ export async function analyzeResume(req: Request, res: Response, next: NextFunct
 
     const fileType = filename.split('.').pop()?.toLowerCase();
     const extractionMethod = ingestionResult?.recognition?.extractionMethod || 'native_text';
+
+    // Check deterministic cache before running computationally expensive AI/ATS pipeline
+    const cacheKey = globalAnalysisCache.computeKey(rawText, jobDescription);
+    const cachedResponse = globalAnalysisCache.get<any>(cacheKey);
+    if (cachedResponse) {
+      return res.json({
+        ...cachedResponse,
+        resumeId,
+        cached: true,
+      });
+    }
 
     const preservedDoc = ingestionResult?.document?.previewDataUrl
       ? {
@@ -129,10 +147,7 @@ export async function analyzeResume(req: Request, res: Response, next: NextFunct
       analysis: finalAnalysis,
     });
 
-    console.log(`[Parser] Ingestion & ATS audit: file="${filename}" type="${fileType}" chars=${rawText.length}`);
-    console.log(`[Final Result] Completed analysis for resumeId="${resumeId}", score=${finalAnalysis.score.overall}`);
-
-    return res.json({
+    const responsePayload = {
       ...finalAnalysis,
       status: 'completed',
       success: true,
@@ -141,9 +156,19 @@ export async function analyzeResume(req: Request, res: Response, next: NextFunct
       recognition: ingestionResult?.recognition || { isResume: true, confidence: 0.95 },
       resume: ingestionResult?.resume || null,
       warnings: [...(ingestionResult?.warnings || []), ...(finalAnalysis.warnings || [])],
-    });
+    };
+
+    // Cache the completed result (2 hours TTL)
+    globalAnalysisCache.set(cacheKey, responsePayload);
+
+    return res.json(responsePayload);
   } catch (err) {
     return next(err);
+  } finally {
+    // Final cleanup pass
+    if (req.file && (req.file as any).buffer) {
+      (req.file as any).buffer = null;
+    }
   }
 }
 

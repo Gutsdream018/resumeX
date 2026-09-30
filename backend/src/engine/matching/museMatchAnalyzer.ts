@@ -93,6 +93,7 @@ Deterministic Base Alignment: ${deterministicScore}/100`;
 
       const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(6000),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${nvidiaApiKey}`,

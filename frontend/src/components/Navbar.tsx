@@ -12,6 +12,7 @@ interface NavbarProps {
   currentUser?: AuthUser | null;
   onLogout?: () => void;
   onOpenMatchMode?: () => void;
+  onOpenJobs?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -23,6 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onLogout,
   onOpenMatchMode,
+  onOpenJobs,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -73,7 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '28px',
+            gap: 'clamp(10px, 1.4vw, 22px)',
           }}
           className="desktop-nav"
         >
@@ -140,6 +142,42 @@ export const Navbar: React.FC<NavbarProps> = ({
             onMouseLeave={(e) => (e.currentTarget.style.color = '#9A9A9A')}
           >
             Pricing
+          </button>
+
+          <button
+            onClick={() => {
+              if (onOpenJobs) onOpenJobs();
+              else handleNavClick('features');
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#9A9A9A',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'color 0.15s ease',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#9A9A9A')}
+          >
+            <span>Find Jobs</span>
+            <span
+              style={{
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                background: '#E31B2B',
+                color: '#FFFFFF',
+                borderRadius: '4px',
+                padding: '1px 5px',
+                lineHeight: 1.2,
+              }}
+            >
+              NEW
+            </span>
           </button>
 
           {/* Adaptive Orbiting Rainbow Circle around Match Mode */}
@@ -271,47 +309,90 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            /* Single Auth Toggle in One Pull */
+            <div
+              className="navbar-auth-single-toggle"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '9999px',
+                padding: '2px',
+                gap: '2px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.4)',
+                position: 'relative',
+              }}
+            >
               <button
+                type="button"
                 onClick={() => onOpenAuth('login')}
+                title="Log into existing account"
                 style={{
-                  background: 'none',
+                  background: 'transparent',
                   border: 'none',
-                  color: '#A3A3A3',
-                  fontSize: '0.88rem',
+                  color: '#CCCCCC',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  transition: 'color 0.15s ease',
-                  padding: '6px 8px',
+                  padding: '5px 12px',
+                  borderRadius: '9999px',
+                  transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: '30px',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#FFFFFF')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#A3A3A3')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#CCCCCC';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Log In
               </button>
-              <button
-                onClick={() => onOpenAuth('signup')}
+
+              <span
                 style={{
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid #333333',
-                  borderRadius: '6px',
+                  width: '1px',
+                  height: '14px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => onOpenAuth('signup')}
+                title="Create a new account"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(227, 27, 43, 0.9) 0%, rgba(185, 28, 28, 0.95) 100%)',
+                  border: '1px solid rgba(227, 27, 43, 0.4)',
                   color: '#FFFFFF',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  padding: '6px 12px',
+                  padding: '5px 13px',
+                  borderRadius: '9999px',
                   transition: 'all 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  minHeight: '30px',
+                  boxShadow: '0 2px 8px rgba(227, 27, 43, 0.3)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#E31B2B';
-                  e.currentTarget.style.background = 'rgba(227, 27, 43, 0.12)';
+                  e.currentTarget.style.transform = 'scale(1.03)';
+                  e.currentTarget.style.boxShadow = '0 0 12px rgba(227, 27, 43, 0.55)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#333333';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(227, 27, 43, 0.3)';
                 }}
               >
-                Sign In
+                <User size={12} />
+                <span>Sign In</span>
               </button>
             </div>
           )}
@@ -324,6 +405,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               padding: '9px 18px',
               fontSize: '0.88rem',
               fontWeight: 600,
+              minHeight: '38px',
             }}
           >
             <span>Review My Resume</span>
@@ -331,7 +413,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Mobile Hamburger Button */}
+        {/* Mobile Hamburger Button (44x44px touch target) */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="mobile-toggle"
@@ -340,11 +422,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             background: '#141414',
             border: '1px solid #242424',
             color: '#F5F5F5',
-            padding: '8px',
-            borderRadius: '6px',
+            padding: '10px',
+            minWidth: '44px',
+            minHeight: '44px',
+            borderRadius: '8px',
             cursor: 'pointer',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-          aria-label="Toggle menu"
+          aria-label="Toggle navigation menu"
         >
           {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -370,48 +456,69 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
                 <span style={{ color: '#FFF', fontSize: '0.9rem', fontWeight: 600 }}>{currentUser.name}</span>
               </div>
-              <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#E31B2B', fontSize: '0.8rem', cursor: 'pointer' }}>
+              <button onClick={onLogout} style={{ background: 'none', border: 'none', color: '#E31B2B', fontSize: '0.8rem', cursor: 'pointer', minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>
                 Sign Out
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '6px 0' }}>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAuth('login');
-                }}
+            /* Single Auth Toggle Pill for Mobile */
+            <div style={{ padding: '4px 0', borderBottom: '1px solid #1F1F1F' }}>
+              <div
                 style={{
-                  padding: '9px',
-                  borderRadius: '6px',
-                  border: '1px solid #333',
-                  background: '#141414',
-                  color: '#FFF',
-                  fontSize: '0.86rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: '#161616',
+                  border: '1px solid #282828',
+                  borderRadius: '10px',
+                  padding: '3px',
                 }}
               >
-                Log In
-              </button>
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenAuth('signup');
-                }}
-                style={{
-                  padding: '9px',
-                  borderRadius: '6px',
-                  border: '1px solid #E31B2B',
-                  background: 'rgba(227, 27, 43, 0.15)',
-                  color: '#FFF',
-                  fontSize: '0.86rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Sign In
-              </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth('login');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#CCC',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    minHeight: '44px',
+                  }}
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth('signup');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: '#E31B2B',
+                    color: '#FFF',
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    minHeight: '44px',
+                  }}
+                >
+                  <User size={14} />
+                  <span>Sign In</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -466,6 +573,39 @@ export const Navbar: React.FC<NavbarProps> = ({
             }}
           >
             Pricing
+          </button>
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              if (onOpenJobs) onOpenJobs();
+              else handleNavClick('features');
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#F5F5F5',
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              padding: '8px 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>Find Jobs</span>
+            <span
+              style={{
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                background: '#E31B2B',
+                color: '#FFFFFF',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                lineHeight: 1.2,
+              }}
+            >
+              NEW
+            </span>
           </button>
           {/* Mobile Match Mode Button with Rainbow Orbit */}
           <button
@@ -578,12 +718,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         .match-mode-rainbow-btn:hover .match-mode-inner-content {
           background: #141414 !important;
         }
-        @media (max-width: 820px) {
+        @media (max-width: 1024px) {
           .desktop-nav {
             display: none !important;
           }
           .mobile-toggle {
-            display: flex !important;
+            display: inline-flex !important;
           }
         }
       `}</style>

@@ -17,7 +17,7 @@ interface SectionBlock {
 const SECTION_PATTERNS: { type: string; regex: RegExp }[] = [
   { type: 'summary', regex: /^(professional\s+summary|career\s+summary|summary|profile|about\s+me|career\s+objective|objective|executive\s+summary)$/i },
   { type: 'experience', regex: /^(work\s+experience|professional\s+experience|experience|employment\s+history|work\s+history|career\s+history|summer\s+internship\s+program|internships?)$/i },
-  { type: 'education', regex: /^(education|educational\s+qualifications?|academic\s+background|academic\s+qualifications?|academics|educational\s+background)$/i },
+  { type: 'education', regex: /^(education|educational\s+qualifications?|academic\s+background|academic\s+qualifications?|academics|educational\s+background|education\s*(?:&|and)\s*(?:licensure|certifications?|credentials))$/i },
   { type: 'projects', regex: /^(projects|key\s+projects|personal\s+projects|technical\s+projects|portfolio|seminars\s*(?:&|and)\s*workshops|seminars)$/i },
   { type: 'skills', regex: /^(technical\s+skills|skills\s+&\s+tools|skills|technologies|core\s+competencies|proficiencies|technical\s+expertise)$/i },
   { type: 'certifications', regex: /^(certifications|technical\s+certifications?|licenses\s+&\s+certifications|certificates|professional\s+certifications|workshops?\s*(?:&|and)\s*certifications?)$/i },
@@ -27,7 +27,7 @@ const SECTION_PATTERNS: { type: string; regex: RegExp }[] = [
 
 function normalizeInlineHeadings(text: string): string {
   const inlineHeaderRegex =
-    /(?:^|\s|\.|\b)(EDUCATIONAL\s+QUALIFICATIONS?|TECHNICAL\s+CERTIFICATIONS?|CO-?CURRICULAR\s+ACTIVITIES|EXTRA-?CURRICULAR\s+ACTIVITIES|SUMMER\s+INTERNSHIP\s+PROGRAM|WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|TECHNICAL\s+SKILLS|CAREER\s+OBJECTIVE|PROFESSIONAL\s+SUMMARY|PROJECTS|CERTIFICATIONS|EDUCATION|SKILLS)\s*[:\-e]?\s*/gi;
+    /(?:^|\s|\.|\b)(EDUCATIONAL\s+QUALIFICATIONS?|TECHNICAL\s+CERTIFICATIONS?|CO-?CURRICULAR\s+ACTIVITIES|EXTRA-?CURRICULAR\s+ACTIVITIES|SUMMER\s+INTERNSHIP\s+PROGRAM|WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|TECHNICAL\s+SKILLS|CAREER\s+OBJECTIVE|PROFESSIONAL\s+SUMMARY|PROJECTS|CERTIFICATIONS|EDUCATION\s*(?:&|AND)\s*(?:LICENSURE|CERTIFICATIONS?)|EDUCATION|SKILLS)\s*[:\-e]?\s*/gi;
 
   return text.replace(inlineHeaderRegex, (match, header) => `\n\n${header.trim().toUpperCase()}\n`);
 }

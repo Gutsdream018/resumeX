@@ -18,11 +18,14 @@ import { AtsScorePage } from './AtsScorePage';
 import { AiSuggestionsPage } from './AiSuggestionsPage';
 import { SectionAnalysisPage } from './SectionAnalysisPage';
 import { JobMatchPage } from './JobMatchPage';
+import { JobsDiscoveryPage } from './jobs/JobsDiscoveryPage';
+import { ApplicationTrackerPage } from './jobs/ApplicationTrackerPage';
 import { KeywordDeepDivePage } from './KeywordDeepDivePage';
 import { SectionDeepDive } from './SectionDeepDive';
 import { ResumeOptimizerPage } from './optimizer/ResumeOptimizerPage';
 import { WorkflowBreadcrumb, WorkflowStage } from './common/WorkflowBreadcrumb';
 import { ResumeEvolutionTimeline } from './evolution/ResumeEvolutionTimeline';
+import { ScoredJobMatch } from '../types';
 
 interface ResultsDashboardProps {
   analysis: ResumeAnalysisResult;
@@ -38,6 +41,13 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab || 'overview');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [tailoredJob, setTailoredJob] = useState<ScoredJobMatch | null>(null);
+
+  const handleTailorJob = (match: ScoredJobMatch) => {
+    setTailoredJob(match);
+    setActiveTab('job-match');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (analysis.overall_score >= 80) {
@@ -153,7 +163,18 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           </div>
 
           {/* Center Workflow Breadcrumb */}
-          <div className="desktop-workflow-breadcrumb" style={{ display: 'flex', alignItems: 'center' }}>
+          <div
+            className="desktop-workflow-breadcrumb"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              maxWidth: '100%',
+              flexShrink: 1,
+            }}
+          >
             {(() => {
               let stage: WorkflowStage = 'analyze';
               if (activeTab === 'ats-score' || activeTab === 'resume-analysis') stage = 'diagnose';
@@ -181,32 +202,35 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           </div>
 
           {/* Right Header Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
               onClick={handleShare}
-              className="btn btn-secondary-dark"
+              className="btn btn-secondary-dark header-collapse-btn"
+              title="Share Audit"
               style={{ fontSize: '0.8rem', padding: '6px 12px' }}
             >
               {copiedShare ? <Check size={14} color="#10B981" /> : <Share2 size={14} />}
-              <span>{copiedShare ? 'Link Copied!' : 'Share Audit'}</span>
+              <span className="header-collapse-label">{copiedShare ? 'Link Copied!' : 'Share Audit'}</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="btn btn-secondary-dark"
+              className="btn btn-secondary-dark header-collapse-btn"
+              title="Export PDF"
               style={{ fontSize: '0.8rem', padding: '6px 12px' }}
             >
               <Printer size={14} />
-              <span>Export PDF</span>
+              <span className="header-collapse-label">Export PDF</span>
             </button>
 
             <button
               onClick={onReset}
-              className="btn btn-red"
+              className="btn btn-red header-collapse-btn"
+              title="New Review"
               style={{ fontSize: '0.8rem', padding: '6px 14px' }}
             >
               <RefreshCw size={14} />
-              <span>New Review</span>
+              <span className="header-collapse-label">New Review</span>
             </button>
           </div>
         </header>
@@ -243,6 +267,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             <ResumeOptimizerPage
               analysis={analysis}
               onNavigateTab={(tab) => setActiveTab(tab as any)}
+              tailoredJob={tailoredJob}
             />
           )}
 
@@ -291,10 +316,25 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             />
           )}
 
+          {activeTab === 'jobs' && (
+            <JobsDiscoveryPage
+              analysis={analysis}
+              onTailorJob={handleTailorJob}
+              onNavigateTab={(tab: any) => setActiveTab(tab)}
+            />
+          )}
+
+          {activeTab === 'applications' && (
+            <ApplicationTrackerPage
+              onNavigateTab={(tab: any) => setActiveTab(tab)}
+            />
+          )}
+
           {activeTab === 'job-match' && (
             <JobMatchPage
               analysis={analysis}
               onNavigateTab={(tab: any) => setActiveTab(tab)}
+              initialJobDescription={tailoredJob?.job?.description}
             />
           )}
 
@@ -312,6 +352,17 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       </div>
 
       <style>{`
+        @media (max-width: 1100px) {
+          .header-collapse-label {
+            display: none !important;
+          }
+          .header-collapse-btn {
+            padding: 6px 10px !important;
+          }
+          .desktop-workflow-breadcrumb {
+            max-width: 320px !important;
+          }
+        }
         @media (max-width: 900px) {
           .dashboard-mobile-toggle {
             display: flex !important;
@@ -325,6 +376,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           }
           .dashboard-sidebar-wrapper.mobile-open {
             left: 0 !important;
+          }
+          .desktop-workflow-breadcrumb {
+            display: none !important;
           }
         }
       `}</style>

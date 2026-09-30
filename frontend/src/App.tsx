@@ -169,6 +169,41 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleOpenJobs = async () => {
+    if (analysisResult) {
+      setDashboardInitialTab('jobs');
+      setIsMatchModeOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (sampleResumes && sampleResumes.length > 0) {
+      setDashboardInitialTab('jobs');
+      await handleSelectSample(sampleResumes[0].id);
+    } else {
+      scrollToUpload();
+    }
+  };
+
+  const handleOpenApplications = async () => {
+    if (analysisResult) {
+      setDashboardInitialTab('applications');
+      setIsMatchModeOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (sampleResumes && sampleResumes.length > 0) {
+      setDashboardInitialTab('applications');
+      await handleSelectSample(sampleResumes[0].id);
+    } else {
+      scrollToUpload();
+    }
+  };
+
+  // Route support: check if URL contains /jobs or /applications
+  useEffect(() => {
+    if (window.location.pathname.startsWith('/jobs')) {
+      handleOpenJobs();
+    } else if (window.location.pathname.startsWith('/applications')) {
+      handleOpenApplications();
+    }
+  }, [sampleResumes]);
+
   const handleReset = () => {
     setAnalysisResult(null);
     setErrorMessage(null);
@@ -224,6 +259,7 @@ export const App: React.FC = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }
           }}
+          onOpenJobs={handleOpenJobs}
         />
       )}
 
@@ -434,12 +470,18 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Dev-only Diagnostic Debug Drawer */}
-      <DevDebugPanel
-        analysis={analysisResult}
-        pipelineStage={isLoading ? 'ats' : analysisResult ? 'completed' : 'idle'}
-        error={errorMessage}
-      />
+      {/* Dev-only Diagnostic Debug Drawer: hidden unless VITE_DEBUG or NEXT_PUBLIC_DEBUG is true */}
+      {Boolean(
+        (import.meta as any)?.env?.VITE_DEBUG === 'true' ||
+        (import.meta as any)?.env?.NEXT_PUBLIC_DEBUG === 'true' ||
+        (import.meta as any)?.env?.DEV_DEBUG === 'true'
+      ) && (
+        <DevDebugPanel
+          analysis={analysisResult}
+          pipelineStage={isLoading ? 'ats' : analysisResult ? 'completed' : 'idle'}
+          error={errorMessage}
+        />
+      )}
     </div>
   );
 };

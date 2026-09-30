@@ -10,14 +10,28 @@ build/
 */dist/
 */build/
 
-# Environment and sensitive keys
+# Environment, secrets, and credentials
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.env
+*.key
+*.pem
+credentials*.json
 backend/.env
+frontend/.env
+frontend/.env.local
+
+# Runtime Data and Temporary Storage
+.data/
+backend/.data/
+temp/
+tmp/
+*.tmp
 
 # Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -26,7 +40,7 @@ lerna-debug.log*
 
 # OS and Editor
 .DS_Store
-*.pem
+Thumbs.db
 .vscode/
 .idea/
 *.suo

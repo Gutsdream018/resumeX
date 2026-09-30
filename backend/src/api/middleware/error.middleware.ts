@@ -20,8 +20,8 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({
         status: 'invalid_file',
-        message: 'File size exceeds the 15MB limit. Please upload a smaller resume.',
-        error: 'File size exceeds the 15MB limit. Please upload a smaller resume.',
+        message: 'File size exceeds the 10MB limit. Please upload a smaller resume.',
+        error: 'File size exceeds the 10MB limit. Please upload a smaller resume.',
         code: 'LIMIT_FILE_SIZE',
       });
     }

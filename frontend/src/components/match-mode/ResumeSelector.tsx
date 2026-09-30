@@ -11,7 +11,7 @@ interface ResumeSelectorProps {
   onChangeResume?: () => void;
 }
 
-const DEFAULT_SAMPLE_RESUME = `Alex Morgan
+export const DEFAULT_SAMPLE_RESUME = `Alex Morgan
 Senior Full-Stack Engineer | San Francisco, CA | alex.morgan@example.com
 
 SUMMARY

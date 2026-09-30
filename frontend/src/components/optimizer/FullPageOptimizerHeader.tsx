@@ -12,6 +12,7 @@ import {
   Lamp,
   PanelRightOpen,
   PanelRightClose,
+  ChevronDown,
 } from 'lucide-react';
 
 export type ResumeTemplatePreset =
@@ -38,6 +39,9 @@ interface FullPageOptimizerHeaderProps {
   templatePreset: ResumeTemplatePreset;
   pendingImprovementsCount: number;
   isDrawerOpen: boolean;
+  hasTargetJob?: boolean;
+  targetJobTitle?: string;
+  onOpenFullOptimize?: (mode: 'ats_general' | 'tailored') => void;
   onUndo: () => void;
   onRedo: () => void;
   onDocThemeChange: (theme: DocumentTheme) => void;
@@ -64,6 +68,9 @@ export const FullPageOptimizerHeader: React.FC<FullPageOptimizerHeaderProps> = (
   templatePreset,
   pendingImprovementsCount,
   isDrawerOpen,
+  hasTargetJob = false,
+  targetJobTitle,
+  onOpenFullOptimize,
   onUndo,
   onRedo,
   onDocThemeChange,
@@ -75,6 +82,7 @@ export const FullPageOptimizerHeader: React.FC<FullPageOptimizerHeaderProps> = (
   onToggleDrawer,
   onOpenExportModal,
 }) => {
+  const [optMode, setOptMode] = React.useState<'ats_general' | 'tailored'>('ats_general');
   const scoreDelta = currentScore - baselineScore;
 
   return (
@@ -376,27 +384,87 @@ export const FullPageOptimizerHeader: React.FC<FullPageOptimizerHeaderProps> = (
           <span>ATS Check</span>
         </button>
 
-        {/* Analyze Changes button */}
-        <button
-          onClick={onAnalyzeChanges}
-          disabled={isAnalyzing}
+        {/* Unified One-Click "Optimize Entire Resume" Single Mode Button */}
+        <div
+          className="full-optimizer-mode-btn-group"
           style={{
-            padding: '5px 12px',
-            backgroundColor: isAnalyzing ? '#222' : 'rgba(227, 27, 43, 0.12)',
-            border: '1px solid rgba(227, 27, 43, 0.35)',
-            borderRadius: '5px',
-            color: isAnalyzing ? '#888' : '#FF4D4D',
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            cursor: isAnalyzing ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
+            display: 'inline-flex',
+            alignItems: 'stretch',
+            background: 'linear-gradient(135deg, rgba(227, 27, 43, 0.25) 0%, rgba(30, 30, 30, 0.95) 100%)',
+            borderRadius: '7px',
+            padding: '2px',
+            border: '1px solid rgba(227, 27, 43, 0.5)',
+            boxShadow: '0 0 16px rgba(227, 27, 43, 0.3)',
+            position: 'relative',
           }}
         >
-          {isAnalyzing ? <Loader2 size={12} className="spin" /> : <Sparkles size={12} />}
-          <span>{isAnalyzing ? 'Analyzing...' : 'Analyze Changes'}</span>
-        </button>
+          <button
+            onClick={() => onOpenFullOptimize ? onOpenFullOptimize(optMode) : onAnalyzeChanges()}
+            disabled={isAnalyzing}
+            title="Rewrite the whole resume in a single pass across all 5 sections"
+            style={{
+              padding: '6px 14px',
+              background: isAnalyzing ? '#333' : 'linear-gradient(135deg, #E31B2B 0%, #B91C1C 100%)',
+              border: 'none',
+              borderRadius: '5px 0 0 5px',
+              color: '#FFFFFF',
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {isAnalyzing ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+            <span>{isAnalyzing ? 'Optimizing...' : 'Optimize Entire Resume'}</span>
+          </button>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'rgba(20, 20, 20, 0.85)',
+              borderRadius: '0 5px 5px 0',
+              borderLeft: '1px solid rgba(227, 27, 43, 0.35)',
+              paddingRight: '6px',
+              position: 'relative',
+            }}
+          >
+            <select
+              value={optMode}
+              onChange={(e) => setOptMode(e.target.value as any)}
+              title="Select Optimization Mode"
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#ECECEC',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '4px 6px',
+                outline: 'none',
+                cursor: 'pointer',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                paddingRight: '16px',
+              }}
+            >
+              <option value="ats_general" style={{ backgroundColor: '#1A1A1A', color: '#FFF' }}>
+                ⚡ General ATS
+              </option>
+              <option
+                value="tailored"
+                disabled={!hasTargetJob}
+                style={{ backgroundColor: '#1A1A1A', color: hasTargetJob ? '#FFF' : '#666' }}
+                title={hasTargetJob ? `Tailor to ${targetJobTitle || 'Target Job'}` : 'No target job set in Match Mode / Find Jobs'}
+              >
+                {hasTargetJob ? `🎯 Tailor: ${targetJobTitle || 'Job'}` : '🎯 Tailor (No JD set)'}
+              </option>
+            </select>
+            <ChevronDown size={11} color="#AAA" style={{ position: 'absolute', right: '6px', pointerEvents: 'none' }} />
+          </div>
+        </div>
 
         {/* Save */}
         <button
