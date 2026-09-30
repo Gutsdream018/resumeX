@@ -13,19 +13,44 @@ import {
 import { ResumeAnalysisResult } from '../types';
 import { DashboardSidebar, DashboardTab } from './DashboardSidebar';
 import { DashboardOverview } from './DashboardOverview';
-import { ResumeSplitView } from './ResumeSplitView';
 import { AtsScorePage } from './AtsScorePage';
 import { AiSuggestionsPage } from './AiSuggestionsPage';
 import { SectionAnalysisPage } from './SectionAnalysisPage';
-import { JobMatchPage } from './JobMatchPage';
-import { JobsDiscoveryPage } from './jobs/JobsDiscoveryPage';
-import { ApplicationTrackerPage } from './jobs/ApplicationTrackerPage';
 import { KeywordDeepDivePage } from './KeywordDeepDivePage';
 import { SectionDeepDive } from './SectionDeepDive';
-import { ResumeOptimizerPage } from './optimizer/ResumeOptimizerPage';
 import { WorkflowBreadcrumb, WorkflowStage } from './common/WorkflowBreadcrumb';
-import { ResumeEvolutionTimeline } from './evolution/ResumeEvolutionTimeline';
 import { ScoredJobMatch } from '../types';
+
+// Code-split heavy auxiliary tab routes to minimize initial bundle footprint
+const ResumeOptimizerPage = React.lazy(() =>
+  import('./optimizer/ResumeOptimizerPage').then((m) => ({ default: m.ResumeOptimizerPage }))
+);
+const JobsDiscoveryPage = React.lazy(() =>
+  import('./jobs/JobsDiscoveryPage').then((m) => ({ default: m.JobsDiscoveryPage }))
+);
+const ApplicationTrackerPage = React.lazy(() =>
+  import('./jobs/ApplicationTrackerPage').then((m) => ({ default: m.ApplicationTrackerPage }))
+);
+const JobMatchPage = React.lazy(() =>
+  import('./JobMatchPage').then((m) => ({ default: m.JobMatchPage }))
+);
+const ResumeSplitView = React.lazy(() =>
+  import('./ResumeSplitView').then((m) => ({ default: m.ResumeSplitView }))
+);
+const ResumeEvolutionTimeline = React.lazy(() =>
+  import('./evolution/ResumeEvolutionTimeline').then((m) => ({ default: m.ResumeEvolutionTimeline }))
+);
+
+const DashboardTabSkeleton: React.FC = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0', opacity: 0.65 }}>
+    <div style={{ height: '32px', width: '220px', background: '#181A22', borderRadius: '8px' }} />
+    <div style={{ height: '120px', width: '100%', background: '#12141A', borderRadius: '12px' }} />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+      <div style={{ height: '200px', background: '#12141A', borderRadius: '12px' }} />
+      <div style={{ height: '200px', background: '#12141A', borderRadius: '12px' }} />
+    </div>
+  </div>
+);
 
 interface ResultsDashboardProps {
   analysis: ResumeAnalysisResult;
@@ -263,80 +288,82 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             />
           )}
 
-          {activeTab === 'optimizer' && (
-            <ResumeOptimizerPage
-              analysis={analysis}
-              onNavigateTab={(tab) => setActiveTab(tab as any)}
-              tailoredJob={tailoredJob}
-            />
-          )}
-
-          {activeTab === 'resume-analysis' && <ResumeSplitView analysis={analysis} />}
-
-          {activeTab === 'keywords' && <KeywordDeepDivePage analysis={analysis} />}
-
-          {activeTab === 'experience' && (
-            <SectionDeepDive
-              type="experience"
-              analysis={analysis}
-              onNavigateSuggestions={() => setActiveTab('suggestions')}
-            />
-          )}
-
-          {activeTab === 'education' && (
-            <SectionDeepDive
-              type="education"
-              analysis={analysis}
-              onNavigateSuggestions={() => setActiveTab('suggestions')}
-            />
-          )}
-
-          {activeTab === 'skills' && (
-            <SectionDeepDive
-              type="skills"
-              analysis={analysis}
-              onNavigateSuggestions={() => setActiveTab('suggestions')}
-            />
-          )}
-
-          {activeTab === 'suggestions' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <ResumeEvolutionTimeline
+          <React.Suspense fallback={<DashboardTabSkeleton />}>
+            {activeTab === 'optimizer' && (
+              <ResumeOptimizerPage
                 analysis={analysis}
-                onNavigateOptimizer={() => setActiveTab('optimizer')}
+                onNavigateTab={(tab) => setActiveTab(tab as any)}
+                tailoredJob={tailoredJob}
               />
-              <AiSuggestionsPage analysis={analysis} />
-            </div>
-          )}
+            )}
 
-          {activeTab === 'sections' && (
-            <SectionAnalysisPage
-              analysis={analysis}
-              onNavigateSuggestions={() => setActiveTab('suggestions')}
-            />
-          )}
+            {activeTab === 'resume-analysis' && <ResumeSplitView analysis={analysis} />}
 
-          {activeTab === 'jobs' && (
-            <JobsDiscoveryPage
-              analysis={analysis}
-              onTailorJob={handleTailorJob}
-              onNavigateTab={(tab: any) => setActiveTab(tab)}
-            />
-          )}
+            {activeTab === 'keywords' && <KeywordDeepDivePage analysis={analysis} />}
 
-          {activeTab === 'applications' && (
-            <ApplicationTrackerPage
-              onNavigateTab={(tab: any) => setActiveTab(tab)}
-            />
-          )}
+            {activeTab === 'experience' && (
+              <SectionDeepDive
+                type="experience"
+                analysis={analysis}
+                onNavigateSuggestions={() => setActiveTab('suggestions')}
+              />
+            )}
 
-          {activeTab === 'job-match' && (
-            <JobMatchPage
-              analysis={analysis}
-              onNavigateTab={(tab: any) => setActiveTab(tab)}
-              initialJobDescription={tailoredJob?.job?.description}
-            />
-          )}
+            {activeTab === 'education' && (
+              <SectionDeepDive
+                type="education"
+                analysis={analysis}
+                onNavigateSuggestions={() => setActiveTab('suggestions')}
+              />
+            )}
+
+            {activeTab === 'skills' && (
+              <SectionDeepDive
+                type="skills"
+                analysis={analysis}
+                onNavigateSuggestions={() => setActiveTab('suggestions')}
+              />
+            )}
+
+            {activeTab === 'suggestions' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <ResumeEvolutionTimeline
+                  analysis={analysis}
+                  onNavigateOptimizer={() => setActiveTab('optimizer')}
+                />
+                <AiSuggestionsPage analysis={analysis} />
+              </div>
+            )}
+
+            {activeTab === 'sections' && (
+              <SectionAnalysisPage
+                analysis={analysis}
+                onNavigateSuggestions={() => setActiveTab('suggestions')}
+              />
+            )}
+
+            {activeTab === 'jobs' && (
+              <JobsDiscoveryPage
+                analysis={analysis}
+                onTailorJob={handleTailorJob}
+                onNavigateTab={(tab: any) => setActiveTab(tab)}
+              />
+            )}
+
+            {activeTab === 'applications' && (
+              <ApplicationTrackerPage
+                onNavigateTab={(tab: any) => setActiveTab(tab)}
+              />
+            )}
+
+            {activeTab === 'job-match' && (
+              <JobMatchPage
+                analysis={analysis}
+                onNavigateTab={(tab: any) => setActiveTab(tab)}
+                initialJobDescription={tailoredJob?.job?.description}
+              />
+            )}
+          </React.Suspense>
 
           {/* 20% Dark Space Cushion to Compensate Length Differentiation Across Tabs */}
           <div

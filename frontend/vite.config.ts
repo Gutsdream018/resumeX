@@ -23,11 +23,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          reactVendor: ['react', 'react-dom'],
+          motionVendor: ['framer-motion'],
           threeVendor: ['three', '@react-three/fiber', '@react-three/drei'],
           lucideVendor: ['lucide-react'],
         },
       },
     },
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 600,
   },
 });
