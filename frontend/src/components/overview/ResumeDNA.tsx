@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import * as THREE from 'three';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sparkles,
   ArrowRight,
@@ -40,10 +39,8 @@ interface NodeData {
 }
 
 export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab }) => {
-  const mountRef = useRef<HTMLDivElement>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string>('skills');
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [webGlSupported, setWebGlSupported] = useState<boolean>(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false);
 
   // Extract actual data from canonical resume and analysis
@@ -107,17 +104,6 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
       const listener = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
       mediaQuery.addEventListener('change', listener);
       return () => mediaQuery.removeEventListener('change', listener);
-    }
-  }, []);
-
-  // Check WebGL availability
-  useEffect(() => {
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      if (!gl) setWebGlSupported(false);
-    } catch (e) {
-      setWebGlSupported(false);
     }
   }, []);
 
@@ -284,211 +270,6 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
 
   const activeNode = nodes.find((n) => n.id === selectedNodeId) || nodes[0];
 
-  // 3D Three.js implementation (with clean disposal & memoized scene)
-  useEffect(() => {
-    if (!webGlSupported || prefersReducedMotion || !mountRef.current) return;
-
-    const container = mountRef.current;
-    const width = container.clientWidth || 600;
-    const height = 360;
-
-    // Scene setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 11);
-
-    let renderer: THREE.WebGLRenderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
-    } catch (e) {
-      console.warn('WebGLRenderer context creation failed, falling back:', e);
-      setWebGlSupported(false);
-      return;
-    }
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
-
-    // Group for whole network
-    const networkGroup = new THREE.Group();
-    scene.add(networkGroup);
-
-    // Central RESUME Node (Mesh + Ring)
-    const centralGeo = new THREE.SphereGeometry(0.85, 32, 32);
-    const centralMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-    const centralMesh = new THREE.Mesh(centralGeo, centralMat);
-    networkGroup.add(centralMesh);
-
-    // Central pulsing ring
-    const ringGeo = new THREE.RingGeometry(0.95, 1.05, 48);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xE50920,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.85,
-    });
-    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-    networkGroup.add(ringMesh);
-
-    // Satellite Nodes & Connection Lines
-    const nodeMeshes: { mesh: THREE.Mesh; id: string; basePos: THREE.Vector3 }[] = [];
-    const lineGeos: THREE.BufferGeometry[] = [];
-
-    nodes.forEach((node) => {
-      const rad = (node.angle * Math.PI) / 180;
-      const dist = (node.distance / 140) * 3.4;
-      const x = Math.cos(rad) * dist;
-      const y = Math.sin(rad) * dist;
-      const z = (Math.sin(node.angle) * 0.4);
-
-      // Node Sphere
-      const sphereRadius = (node.size / 20) * 0.32;
-      const sphereGeo = new THREE.SphereGeometry(sphereRadius, 24, 24);
-      const sphereMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(node.color),
-      });
-      const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
-      sphereMesh.position.set(x, y, z);
-      networkGroup.add(sphereMesh);
-
-      // Outer glow ring
-      const haloGeo = new THREE.RingGeometry(sphereRadius * 1.25, sphereRadius * 1.5, 32);
-      const haloMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(node.color),
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.35,
-      });
-      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
-      haloMesh.position.set(x, y, z);
-      networkGroup.add(haloMesh);
-
-      nodeMeshes.push({ mesh: sphereMesh, id: node.id, basePos: new THREE.Vector3(x, y, z) });
-
-      // Connection Line to center
-      const points = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, y, z)];
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-      lineGeos.push(lineGeo);
-      const lineMat = new THREE.LineBasicMaterial({
-        color: new THREE.Color(node.color),
-        transparent: true,
-        opacity: 0.25,
-      });
-      const line = new THREE.Line(lineGeo, lineMat);
-      networkGroup.add(line);
-    });
-
-    // Ambient floating particles
-    const particleCount = 45;
-    const particlePositions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      particlePositions[i] = (Math.random() - 0.5) * 12;
-      particlePositions[i + 1] = (Math.random() - 0.5) * 8;
-      particlePositions[i + 2] = (Math.random() - 0.5) * 4;
-    }
-    const particleGeo = new THREE.BufferGeometry();
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const particleMat = new THREE.PointsMaterial({
-      color: 0xE50920,
-      size: 0.05,
-      transparent: true,
-      opacity: 0.45,
-    });
-    const particleSystem = new THREE.Points(particleGeo, particleMat);
-    networkGroup.add(particleSystem);
-
-    // Raycaster for interactive hover/click
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    const handlePointerMove = (e: MouseEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(nodeMeshes.map((n) => n.mesh));
-      if (intersects.length > 0) {
-        const hit = nodeMeshes.find((n) => n.mesh === intersects[0].object);
-        if (hit) {
-          renderer.domElement.style.cursor = 'pointer';
-          setHoveredNodeId(hit.id);
-        }
-      } else {
-        renderer.domElement.style.cursor = 'default';
-        setHoveredNodeId(null);
-      }
-    };
-
-    const handlePointerClick = (e: MouseEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(nodeMeshes.map((n) => n.mesh));
-      if (intersects.length > 0) {
-        const hit = nodeMeshes.find((n) => n.mesh === intersects[0].object);
-        if (hit) {
-          setSelectedNodeId(hit.id);
-        }
-      }
-    };
-
-    renderer.domElement.addEventListener('mousemove', handlePointerMove);
-    renderer.domElement.addEventListener('click', handlePointerClick);
-
-    // Resize handler
-    const handleResize = () => {
-      if (!container) return;
-      const newWidth = container.clientWidth;
-      camera.aspect = newWidth / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, height);
-    };
-    window.addEventListener('resize', handleResize);
-
-    // Animation Loop
-    let animationFrameId: number;
-    let clock = new THREE.Clock();
-
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
-
-      // Gentle subtle breathing motion
-      networkGroup.rotation.y = Math.sin(elapsedTime * 0.2) * 0.12;
-      networkGroup.rotation.x = Math.cos(elapsedTime * 0.15) * 0.08;
-
-      const scalePulse = 1 + Math.sin(elapsedTime * 2) * 0.05;
-      ringMesh.scale.set(scalePulse, scalePulse, 1);
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    // Cleanup
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
-      renderer.domElement.removeEventListener('mousemove', handlePointerMove);
-      renderer.domElement.removeEventListener('click', handlePointerClick);
-      centralGeo.dispose();
-      centralMat.dispose();
-      ringGeo.dispose();
-      ringMat.dispose();
-      lineGeos.forEach((g) => g.dispose());
-      particleGeo.dispose();
-      particleMat.dispose();
-      renderer.dispose();
-      if (container && renderer.domElement) {
-        container.innerHTML = '';
-      }
-    };
-  }, [webGlSupported, prefersReducedMotion, nodes]);
-
   return (
     <div
       className="card-dark"
@@ -577,90 +358,22 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
         }}
         className="resume-dna-grid"
       >
-        {/* Left: 3D Canvas OR 2D Fallback */}
+        {/* Left: Futuristic Animated Circle Graph Topology Matrix */}
         <div
           style={{
             position: 'relative',
-            background: 'radial-gradient(circle at center, #111111 0%, #060606 100%)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            borderRadius: '12px',
-            minHeight: '360px',
+            background: 'radial-gradient(circle at center, #0B0E14 0%, #06070A 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '14px',
+            minHeight: '390px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
+            boxShadow: 'inset 0 0 50px rgba(0, 0, 0, 0.8)',
           }}
         >
-          {webGlSupported && !prefersReducedMotion ? (
-            <div ref={mountRef} style={{ width: '100%', height: '360px' }} />
-          ) : (
-            /* 2D Responsive SVG Network Fallback */
-            <div style={{ width: '100%', height: '360px', position: 'relative' }}>
-              <svg width="100%" height="100%" viewBox="0 0 600 360" style={{ position: 'absolute', top: 0, left: 0 }}>
-                {/* Central connection lines */}
-                {nodes.map((node) => {
-                  const rad = (node.angle * Math.PI) / 180;
-                  const x = 300 + Math.cos(rad) * (node.distance * 0.95);
-                  const y = 180 + Math.sin(rad) * (node.distance * 0.95);
-                  return (
-                    <line
-                      key={`line-${node.id}`}
-                      x1="300"
-                      y1="180"
-                      x2={x}
-                      y2={y}
-                      stroke={node.color}
-                      strokeWidth={selectedNodeId === node.id ? 2 : 1}
-                      strokeOpacity={selectedNodeId === node.id ? 0.8 : 0.25}
-                      strokeDasharray={selectedNodeId === node.id ? 'none' : '3 3'}
-                    />
-                  );
-                })}
-
-                {/* Central Node */}
-                <circle cx="300" cy="180" r="28" fill="#141414" stroke="#E50920" strokeWidth="2" />
-                <text x="300" y="184" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontWeight="800" letterSpacing="0.08em">
-                  RESUME
-                </text>
-
-                {/* Satellite Nodes */}
-                {nodes.map((node) => {
-                  const rad = (node.angle * Math.PI) / 180;
-                  const x = 300 + Math.cos(rad) * (node.distance * 0.95);
-                  const y = 180 + Math.sin(rad) * (node.distance * 0.95);
-                  const isSel = selectedNodeId === node.id;
-                  return (
-                    <g
-                      key={`node-${node.id}`}
-                      onClick={() => setSelectedNodeId(node.id)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r={isSel ? node.size + 4 : node.size}
-                        fill="#0D0D0D"
-                        stroke={node.color}
-                        strokeWidth={isSel ? 3 : 1.5}
-                      />
-                      <text
-                        x={x}
-                        y={y + 3}
-                        textAnchor="middle"
-                        fill="#F5F5F5"
-                        fontSize="8.5"
-                        fontWeight="700"
-                      >
-                        {node.label.slice(0, 4)}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-          )}
-
-          {/* Center Badge overlay */}
+          {/* Ambient Technical Coordinate Watermarks */}
           <div
             style={{
               position: 'absolute',
@@ -668,22 +381,40 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
               left: '14px',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
               pointerEvents: 'none',
+              zIndex: 10,
             }}
           >
             <span
               style={{
-                width: '6px',
-                height: '6px',
+                width: '7px',
+                height: '7px',
                 borderRadius: '50%',
                 backgroundColor: '#10B981',
-                boxShadow: '0 0 8px #10B981',
+                boxShadow: '0 0 10px #10B981',
+                animation: 'pulseGlowSoft 2s infinite',
               }}
             />
-            <span style={{ fontSize: '0.72rem', color: '#888888', fontWeight: 600 }}>
-              {hoveredNodeId ? `Hovering: ${hoveredNodeId.toUpperCase()}` : 'Live Topology Matrix'}
+            <span style={{ fontSize: '0.74rem', color: '#B0B0B0', fontWeight: 700, letterSpacing: '0.04em' }}>
+              {hoveredNodeId ? `TARGET LOCKED // ${hoveredNodeId.toUpperCase()}` : 'LIVE TOPOLOGY MATRIX // SYS.ACTIVE'}
             </span>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '14px',
+              fontSize: '0.68rem',
+              color: '#666666',
+              fontFamily: 'monospace',
+              letterSpacing: '0.06em',
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          >
+            RADIAL.GRID.v2.6 // 60 FPS
           </div>
 
           <div
@@ -692,12 +423,451 @@ export const ResumeDNA: React.FC<ResumeDNAProps> = ({ analysis, onNavigateTab })
               bottom: '12px',
               right: '14px',
               fontSize: '0.7rem',
-              color: '#666666',
+              color: '#888888',
               pointerEvents: 'none',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
             }}
           >
-            Click node to inspect node intelligence
+            <Sparkles size={11} color="#E50920" />
+            <span>Click any node to inspect telemetry</span>
           </div>
+
+          {/* Master Scalable SVG Topology Graph & Pattern */}
+          <svg
+            viewBox="0 0 600 370"
+            style={{
+              width: '100%',
+              height: '370px',
+              maxHeight: '100%',
+              display: 'block',
+              overflow: 'visible',
+            }}
+          >
+            <defs>
+              {/* Radial gradient for central core hub */}
+              <radialGradient id="coreHubGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#FF384D" />
+                <stop offset="65%" stopColor="#C40517" />
+                <stop offset="100%" stopColor="#250005" />
+              </radialGradient>
+
+              {/* Central glowing aura */}
+              <filter id="coreGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="6" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              {/* Node glow filter */}
+              <filter id="nodeGlow" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              {/* Radar sweep gradient */}
+              <linearGradient id="radarSweepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#E50920" stopOpacity="0.22" />
+                <stop offset="60%" stopColor="#E50920" stopOpacity="0.04" />
+                <stop offset="100%" stopColor="#E50920" stopOpacity="0" />
+              </linearGradient>
+
+              {/* Spoke line gradients for each node */}
+              {nodes.map((node) => (
+                <linearGradient
+                  key={`spokeGrad-${node.id}`}
+                  id={`spokeGrad-${node.id}`}
+                  x1="300"
+                  y1="185"
+                  x2={300 + Math.cos((node.angle * Math.PI) / 180) * node.distance}
+                  y2={185 + Math.sin((node.angle * Math.PI) / 180) * node.distance}
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop offset="0%" stopColor="#E50920" stopOpacity="0.8" />
+                  <stop offset="60%" stopColor={node.color} stopOpacity="0.6" />
+                  <stop offset="100%" stopColor={node.color} stopOpacity="0.95" />
+                </linearGradient>
+              ))}
+            </defs>
+
+            {/* 1. BACKGROUND PATTERN & CONCENTRIC ORBITS */}
+            <g opacity="0.85">
+              {/* Center Axis Crosshairs */}
+              <line x1="100" y1="185" x2="500" y2="185" stroke="#FFFFFF" strokeOpacity="0.04" strokeDasharray="3 6" />
+              <line x1="300" y1="40" x2="300" y2="330" stroke="#FFFFFF" strokeOpacity="0.04" strokeDasharray="3 6" />
+
+              {/* Diagonal Grid Rays */}
+              <line x1="170" y1="55" x2="430" y2="315" stroke="#FFFFFF" strokeOpacity="0.025" strokeDasharray="2 8" />
+              <line x1="170" y1="315" x2="430" y2="55" stroke="#FFFFFF" strokeOpacity="0.025" strokeDasharray="2 8" />
+
+              {/* Range Orbit 1 (Inner Dotted r=60) */}
+              <circle cx="300" cy="185" r="60" fill="none" stroke="#FFFFFF" strokeOpacity="0.08" strokeDasharray="2 4" />
+
+              {/* Range Orbit 2 (Mid Dashed Counter-Rotating r=105) */}
+              <circle
+                cx="300"
+                cy="185"
+                r="105"
+                fill="none"
+                stroke="#E50920"
+                strokeOpacity="0.16"
+                strokeWidth="1.2"
+                strokeDasharray="4 8"
+                className="animate-spin-reverse-slow"
+              />
+
+              {/* Range Orbit 3 (Nodes Orbit Circle r=145) */}
+              <circle cx="300" cy="185" r="145" fill="none" stroke="#FFFFFF" strokeOpacity="0.06" strokeWidth="1" />
+
+              {/* Range Orbit 4 (Outer Telemetry Circle r=175 with Compass Ticks) */}
+              <g className="animate-spin-slow">
+                <circle cx="300" cy="185" r="175" fill="none" stroke="#FFFFFF" strokeOpacity="0.1" strokeDasharray="6 14" strokeWidth="1" />
+                {/* 12 Compass Degree Ticks on Outer Orbit */}
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const angle = (i * 30 * Math.PI) / 180;
+                  const x1 = 300 + Math.cos(angle) * 171;
+                  const y1 = 185 + Math.sin(angle) * 171;
+                  const x2 = 300 + Math.cos(angle) * 179;
+                  const y2 = 185 + Math.sin(angle) * 179;
+                  return (
+                    <line
+                      key={`compass-tick-${i}`}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={i % 3 === 0 ? '#E50920' : '#FFFFFF'}
+                      strokeOpacity={i % 3 === 0 ? 0.45 : 0.2}
+                      strokeWidth={i % 3 === 0 ? 1.5 : 1}
+                    />
+                  );
+                })}
+              </g>
+
+              {/* Rotating Radar Scanner Sweep */}
+              <g className="animate-radar-sweep">
+                <path
+                  d="M 300 185 L 300 10 A 175 175 0 0 1 425 65 Z"
+                  fill="url(#radarSweepGrad)"
+                />
+                <line x1="300" y1="185" x2="425" y2="65" stroke="#E50920" strokeOpacity="0.4" strokeWidth="1.2" />
+              </g>
+
+              {/* Ambient Floating Micro-particles / Stars */}
+              {[
+                { x: 190, y: 75, r: 1.2, o: 0.3 },
+                { x: 410, y: 80, r: 1.5, o: 0.4 },
+                { x: 450, y: 270, r: 1, o: 0.25 },
+                { x: 150, y: 250, r: 1.2, o: 0.35 },
+                { x: 230, y: 310, r: 1.5, o: 0.3 },
+                { x: 370, y: 320, r: 1.2, o: 0.4 },
+                { x: 120, y: 150, r: 1, o: 0.25 },
+                { x: 470, y: 160, r: 1.5, o: 0.35 },
+              ].map((star, idx) => (
+                <circle
+                  key={`star-${idx}`}
+                  cx={star.x}
+                  cy={star.y}
+                  r={star.r}
+                  fill="#FFFFFF"
+                  opacity={star.o}
+                />
+              ))}
+            </g>
+
+            {/* 2. DYNAMIC SPOKES & MOVING DATA PACKETS */}
+            <g>
+              {nodes.map((node, index) => {
+                const rad = (node.angle * Math.PI) / 180;
+                const nx = 300 + Math.cos(rad) * node.distance;
+                const ny = 185 + Math.sin(rad) * node.distance;
+                const isSel = selectedNodeId === node.id;
+                const isHov = hoveredNodeId === node.id;
+                const active = isSel || isHov;
+
+                return (
+                  <g key={`spoke-group-${node.id}`}>
+                    {/* Base Spoke Path */}
+                    <line
+                      x1="300"
+                      y1="185"
+                      x2={nx}
+                      y2={ny}
+                      stroke={`url(#spokeGrad-${node.id})`}
+                      strokeWidth={active ? 2.5 : 1.2}
+                      strokeOpacity={active ? 0.95 : 0.35}
+                      style={{ transition: 'stroke-width 0.25s ease, stroke-opacity 0.25s ease' }}
+                    />
+
+                    {/* Animated Outward Dashed Energy Flow */}
+                    <line
+                      x1="300"
+                      y1="185"
+                      x2={nx}
+                      y2={ny}
+                      stroke={node.color}
+                      strokeWidth={active ? 3 : 1.6}
+                      strokeDasharray="5 10"
+                      strokeOpacity={active ? 0.9 : 0.5}
+                      className="animate-spoke-flow"
+                      style={{
+                        animationDuration: active ? '0.8s' : `${1.4 + index * 0.15}s`,
+                      }}
+                    />
+
+                    {/* Moving Data Energy Photon 1 */}
+                    <circle r={active ? 3.5 : 2.5} fill="#FFFFFF" filter="url(#nodeGlow)">
+                      <animateMotion
+                        path={`M 300 185 L ${nx} ${ny}`}
+                        dur={active ? '1.1s' : `${1.8 + (index % 3) * 0.4}s`}
+                        repeatCount="indefinite"
+                        begin={`${index * 0.25}s`}
+                      />
+                    </circle>
+
+                    {/* Moving Data Energy Photon 2 (Offset in orbit) */}
+                    <circle r={active ? 2.5 : 1.8} fill={node.color} opacity="0.85">
+                      <animateMotion
+                        path={`M 300 185 L ${nx} ${ny}`}
+                        dur={active ? '1.1s' : `${1.8 + (index % 3) * 0.4}s`}
+                        repeatCount="indefinite"
+                        begin={`${index * 0.25 + 0.7}s`}
+                      />
+                    </circle>
+                  </g>
+                );
+              })}
+            </g>
+
+            {/* 3. CENTRAL HUB (CORE RESUME DNA) */}
+            <g>
+              {/* Concentric Shockwave Pulse Rings */}
+              <circle
+                cx="300"
+                cy="185"
+                r="34"
+                fill="none"
+                stroke="#E50920"
+                className="animate-core-shockwave"
+              />
+              <circle
+                cx="300"
+                cy="185"
+                r="34"
+                fill="none"
+                stroke="#FF2E44"
+                className="animate-core-shockwave-delayed"
+              />
+
+              {/* Rotating Telemetry Gear Ring */}
+              <circle
+                cx="300"
+                cy="185"
+                r="41"
+                fill="none"
+                stroke="#E50920"
+                strokeWidth="1.5"
+                strokeDasharray="8 6 3 6"
+                strokeOpacity="0.75"
+                className="animate-spin-slow"
+              />
+
+              {/* Counter-rotating Inner Tick Ring */}
+              <circle
+                cx="300"
+                cy="185"
+                r="33"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="1"
+                strokeDasharray="2 4"
+                strokeOpacity="0.3"
+                className="animate-spin-reverse-slow"
+              />
+
+              {/* Solid High-Density Core Sphere */}
+              <circle
+                cx="300"
+                cy="185"
+                r="27"
+                fill="url(#coreHubGrad)"
+                stroke="#FF4D5E"
+                strokeWidth="2"
+                filter="url(#coreGlow)"
+              />
+
+              {/* Central Core Score & Monogram */}
+              <text
+                x="300"
+                y="183"
+                textAnchor="middle"
+                fill="#FFFFFF"
+                fontSize="13"
+                fontWeight="900"
+                letterSpacing="-0.02em"
+              >
+                {analysis.overall_score || 85}
+              </text>
+              <text
+                x="300"
+                y="194"
+                textAnchor="middle"
+                fill="rgba(255, 255, 255, 0.7)"
+                fontSize="6.5"
+                fontWeight="800"
+                letterSpacing="0.1em"
+              >
+                ATS CORE
+              </text>
+            </g>
+
+            {/* 4. SATELLITE NODES & FLOATING HUD LABELS */}
+            <g>
+              {nodes.map((node) => {
+                const rad = (node.angle * Math.PI) / 180;
+                const nx = 300 + Math.cos(rad) * node.distance;
+                const ny = 185 + Math.sin(rad) * node.distance;
+                const isSel = selectedNodeId === node.id;
+                const isHov = hoveredNodeId === node.id;
+                const active = isSel || isHov;
+                const IconComponent = node.icon;
+
+                // Label positioning offset based on quadrant
+                const isRight = Math.cos(rad) >= 0;
+                const isTop = Math.sin(rad) < 0;
+                const pillX = isRight ? nx + 14 : nx - 85;
+                const pillY = isTop ? ny - 8 : ny + 4;
+
+                return (
+                  <g
+                    key={`satellite-node-${node.id}`}
+                    onClick={() => setSelectedNodeId(node.id)}
+                    onMouseEnter={() => setHoveredNodeId(node.id)}
+                    onMouseLeave={() => setHoveredNodeId(null)}
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    }}
+                  >
+                    {/* Node Ambient Radial Aura */}
+                    <circle
+                      cx={nx}
+                      cy={ny}
+                      r={active ? node.size + 14 : node.size + 6}
+                      fill={node.color}
+                      opacity={active ? 0.35 : 0.15}
+                      filter="url(#nodeGlow)"
+                      style={{ transition: 'all 0.25s ease' }}
+                    />
+
+                    {/* Active Selected Rotating Target Reticle Ring */}
+                    {active && (
+                      <g className="animate-spin-slow">
+                        <circle
+                          cx={nx}
+                          cy={ny}
+                          r={node.size + 8}
+                          fill="none"
+                          stroke={node.color}
+                          strokeWidth="1.5"
+                          strokeDasharray="4 6"
+                          strokeOpacity="0.9"
+                        />
+                      </g>
+                    )}
+
+                    {/* Node Glass Body */}
+                    <circle
+                      cx={nx}
+                      cy={ny}
+                      r={node.size}
+                      fill="#0C0E14"
+                      stroke={node.color}
+                      strokeWidth={active ? 2.5 : 1.5}
+                      filter="url(#nodeGlow)"
+                      style={{ transition: 'all 0.2s ease' }}
+                    />
+
+                    {/* Inner Colored Accent Disc */}
+                    <circle
+                      cx={nx}
+                      cy={ny}
+                      r={node.size * 0.72}
+                      fill={node.color}
+                      opacity={active ? 0.95 : 0.75}
+                      style={{ transition: 'all 0.2s ease' }}
+                    />
+
+                    {/* Embedded Central Icon inside Node Circle */}
+                    <foreignObject
+                      x={nx - 9}
+                      y={ny - 9}
+                      width="18"
+                      height="18"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      <div
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#FFFFFF',
+                        }}
+                      >
+                        <IconComponent size={12} strokeWidth={2.5} />
+                      </div>
+                    </foreignObject>
+
+                    {/* Floating HUD Pill with Section Name and Metric */}
+                    <g
+                      transform={`translate(${pillX}, ${pillY})`}
+                      style={{
+                        pointerEvents: 'none',
+                        transition: 'opacity 0.2s ease, transform 0.2s ease',
+                      }}
+                      opacity={active ? 1 : 0.85}
+                    >
+                      {/* Pill Background Glass */}
+                      <rect
+                        x="0"
+                        y="0"
+                        width="72"
+                        height="20"
+                        rx="5"
+                        fill="rgba(14, 16, 22, 0.85)"
+                        stroke={active ? node.color : 'rgba(255, 255, 255, 0.12)'}
+                        strokeWidth={active ? 1.5 : 1}
+                      />
+
+                      {/* Pill Indicator Dot */}
+                      <circle cx="8" cy="10" r="2.5" fill={node.color} />
+
+                      {/* Pill Section Title */}
+                      <text
+                        x="15"
+                        y="13"
+                        fill="#FFFFFF"
+                        fontSize="8"
+                        fontWeight="800"
+                        letterSpacing="0.04em"
+                      >
+                        {node.label.toUpperCase()}
+                      </text>
+                    </g>
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
         </div>
 
         {/* Right: Contextual Node Panel */}

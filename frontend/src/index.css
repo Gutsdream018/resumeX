@@ -341,3 +341,113 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* ================= CIRCLE GRAPH & RADIAL TOPOLOGY ANIMATIONS ================= */
+@keyframes spinClockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinCounterClockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes coreShockwave {
+  0% {
+    r: 32px;
+    opacity: 0.9;
+    stroke-width: 2.5px;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    r: 72px;
+    opacity: 0;
+    stroke-width: 0.5px;
+  }
+}
+
+@keyframes radarSweepConic {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spokeDashFlow {
+  from {
+    stroke-dashoffset: 40;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulseGlowSoft {
+  0%, 100% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 6px rgba(229, 9, 32, 0.4));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(229, 9, 32, 0.85));
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes floatGentleReverse {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinClockwise 28s linear infinite;
+  transform-origin: center;
+}
+
+.animate-spin-reverse-slow {
+  animation: spinCounterClockwise 36s linear infinite;
+  transform-origin: center;
+}
+
+.animate-radar-sweep {
+  animation: radarSweepConic 10s linear infinite;
+  transform-origin: center;
+}
+
+.animate-core-shockwave {
+  animation: coreShockwave 2.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+}
+
+.animate-core-shockwave-delayed {
+  animation: coreShockwave 2.8s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  animation-delay: 1.4s;
+}
+
+.animate-spoke-flow {
+  animation: spokeDashFlow 1.2s linear infinite;
+}
+

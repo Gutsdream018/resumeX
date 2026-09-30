@@ -186,7 +186,50 @@ export const ATSVisualization: React.FC<ATSVisualizationProps> = ({
         }}
       >
         <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, flexShrink: 0 }}>
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
+            <defs>
+              <filter id="atsArcGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Rotating Outer Telemetry Ring with Compass Ticks */}
+            <g className="animate-spin-slow">
+              <circle
+                cx={center}
+                cy={center}
+                r={112}
+                fill="none"
+                stroke="#FFFFFF"
+                strokeOpacity="0.08"
+                strokeWidth="1"
+                strokeDasharray="3 8"
+              />
+              {Array.from({ length: 8 }).map((_, i) => {
+                const angle = (i * 45 * Math.PI) / 180;
+                const x1 = center + Math.cos(angle) * 109;
+                const y1 = center + Math.sin(angle) * 109;
+                const x2 = center + Math.cos(angle) * 115;
+                const y2 = center + Math.sin(angle) * 115;
+                return (
+                  <line
+                    key={`ats-tick-${i}`}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={i === 0 ? '#E50920' : '#FFFFFF'}
+                    strokeOpacity={i === 0 ? 0.6 : 0.25}
+                    strokeWidth={i === 0 ? 1.5 : 1}
+                  />
+                );
+              })}
+            </g>
+
             {/* Background tracks */}
             {segments.map((seg) => {
               const circumference = 2 * Math.PI * seg.radius;
@@ -200,7 +243,7 @@ export const ATSVisualization: React.FC<ATSVisualizationProps> = ({
                   cy={center}
                   r={seg.radius}
                   fill="none"
-                  stroke="#1A1A1A"
+                  stroke="#16181F"
                   strokeWidth={seg.strokeWidth}
                   strokeDasharray={`${arcLength} ${circumference}`}
                   strokeDashoffset={-dashoffset}
@@ -209,7 +252,7 @@ export const ATSVisualization: React.FC<ATSVisualizationProps> = ({
               );
             })}
 
-            {/* Filled data arcs */}
+            {/* Filled data arcs & Glowing Head Beacons */}
             {segments.map((seg) => {
               const circumference = 2 * Math.PI * seg.radius;
               const totalArc = circumference * 0.75;
@@ -217,27 +260,51 @@ export const ATSVisualization: React.FC<ATSVisualizationProps> = ({
               const dashoffset = circumference * 0.25;
               const isSelected = activeSegmentId === seg.id;
 
+              // Calculate tip coordinates for animated leading-edge beacon
+              const startAngle = Math.PI * 0.75; // 135 deg in screen space
+              const arcAngle = (seg.score / 100) * (Math.PI * 1.5);
+              const tipAngle = startAngle + arcAngle;
+              const tipX = center + Math.cos(tipAngle) * seg.radius;
+              const tipY = center + Math.sin(tipAngle) * seg.radius;
+
               return (
-                <circle
-                  key={`fg-${seg.id}`}
-                  cx={center}
-                  cy={center}
-                  r={seg.radius}
-                  fill="none"
-                  stroke={seg.color}
-                  strokeWidth={isSelected ? seg.strokeWidth + 2 : seg.strokeWidth}
-                  strokeDasharray={`${filledLength} ${circumference}`}
-                  strokeDashoffset={-dashoffset}
-                  strokeLinecap="round"
-                  style={{
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    filter: isSelected ? `drop-shadow(0 0 6px ${seg.color})` : 'none',
-                    opacity: isSelected ? 1 : 0.8,
-                  }}
-                  onMouseEnter={() => setActiveSegmentId(seg.id)}
-                  onClick={() => setActiveSegmentId(seg.id)}
-                />
+                <g key={`arc-group-${seg.id}`}>
+                  <circle
+                    cx={center}
+                    cy={center}
+                    r={seg.radius}
+                    fill="none"
+                    stroke={seg.color}
+                    strokeWidth={isSelected ? seg.strokeWidth + 2.5 : seg.strokeWidth}
+                    strokeDasharray={`${filledLength} ${circumference}`}
+                    strokeDashoffset={-dashoffset}
+                    strokeLinecap="round"
+                    filter={isSelected ? 'url(#atsArcGlow)' : 'none'}
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      opacity: isSelected ? 1 : 0.82,
+                    }}
+                    onMouseEnter={() => setActiveSegmentId(seg.id)}
+                    onClick={() => setActiveSegmentId(seg.id)}
+                  />
+
+                  {/* Pulsing Tip Beacon Dot at the head of the arc */}
+                  <circle
+                    cx={tipX}
+                    cy={tipY}
+                    r={isSelected ? 4 : 2.5}
+                    fill="#FFFFFF"
+                    stroke={seg.color}
+                    strokeWidth="1.5"
+                    filter="url(#atsArcGlow)"
+                    style={{
+                      cursor: 'pointer',
+                      pointerEvents: 'none',
+                      transition: 'r 0.2s ease',
+                    }}
+                  />
+                </g>
               );
             })}
           </svg>
