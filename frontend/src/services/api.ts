@@ -1,7 +1,7 @@
 import { ResumeAnalysisResult, SampleResume } from '../types';
 
-const RAW_API_URL = (import.meta.env.VITE_API_URL || '').trim();
-export const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/+$/, '')}/api` : '/api';
+const RAW_API_URL = (import.meta.env.VITE_API_URL || 'https://resumex1.onrender.com').trim();
+export const API_BASE = RAW_API_URL ? `${RAW_API_URL.replace(/\/+$/, '')}/api` : 'https://resumex1.onrender.com/api';
 
 export class ApiError extends Error {
   constructor(message: string, public status?: number) {

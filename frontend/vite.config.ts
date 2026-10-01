@@ -14,8 +14,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5002',
+        target: process.env.VITE_API_URL || 'https://resumex1.onrender.com',
         changeOrigin: true,
+        secure: true,
       },
     },
   },

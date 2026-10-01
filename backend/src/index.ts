@@ -29,11 +29,14 @@ app.use(
       // Allow requests with no origin (e.g. mobile apps, curl, uptime bots)
       if (!origin) return callback(null, true);
 
-      // In non-production or if explicitly listed in FRONTEND_URL or Netlify preview subdomain
+      // In non-production or if explicitly listed in FRONTEND_URL, wildcard, or deployment domains
       if (
         process.env.NODE_ENV !== 'production' ||
+        configuredOrigins.includes('*') ||
         configuredOrigins.includes(origin) ||
         origin.endsWith('.netlify.app') ||
+        origin.endsWith('.onrender.com') ||
+        origin.endsWith('.vercel.app') ||
         origin === 'http://localhost:5173' ||
         origin === 'http://localhost:3000'
       ) {
